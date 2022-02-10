@@ -5,6 +5,8 @@ import pkgutil
 import os
 import random
 
+# from ..fast_engine import 
+
 data = pkgutil.get_data(__package__, "data.json")
 data = json.loads(data)
 
