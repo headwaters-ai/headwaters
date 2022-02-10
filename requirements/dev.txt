@@ -1,4 +1,5 @@
 bidict==0.21.4
+black==22.1.0
 bleach==4.1.0
 build==0.7.0
 certifi==2021.10.8
@@ -9,15 +10,19 @@ docutils==0.18.1
 Flask==2.0.2
 Flask-SocketIO==5.1.1
 h11==0.13.0
+-e git+https://github.com/headwaters-ai/headwaters.git@35949e2165d32b061964cb6020dfaa7f82cf92e2#egg=headwaters
 idna==3.3
 importlib-metadata==4.10.1
 itsdangerous==2.0.1
 Jinja2==3.0.3
 keyring==23.5.0
 MarkupSafe==2.0.1
+mypy-extensions==0.4.3
 packaging==21.3
+pathspec==0.9.0
 pep517==0.12.0
 pkginfo==1.8.2
+platformdirs==2.5.0
 Pygments==2.11.2
 pyparsing==3.0.7
 python-engineio==4.3.1
