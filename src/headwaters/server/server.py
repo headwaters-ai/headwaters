@@ -5,7 +5,6 @@ import pkgutil
 import os
 import random
 
-# from ..fast_engine import 
 
 data = pkgutil.get_data(__package__, "data.json")
 data = json.loads(data)
@@ -16,14 +15,23 @@ sio = SocketIO(app)
 
 @app.get("/")
 def index():
-    return jsonify(mpserver=f"says hello and {random.random()}")
+    return jsonify(server=f"says hello and {random.random()}")
 
 
-@app.post("/command")
+@app.get("/command")
 def command():
     """this could be one route to test in operation param changes across the command_q"""
-    pass
+    new_freq = random.randint(2,5)
+    place_command(new_freq)
+    return jsonify(server=f"adjusted freq to {new_freq}")
 
+def place_command(command):
+    """called by the /command endpoint and places the command onto the cmd_q
+    
+    first test is a single rand int for freq of fast engine
+    
+    """
+    cmd_q.put(command)
 
 def q_printer(emit_q):
     """will become emitter, for now run on bg task,
@@ -39,8 +47,12 @@ def q_printer(emit_q):
         # this sleep amount severly impacts CPU and idle wake up statistics
         sio.sleep(0.001)
 
+cmd_q = None # this is so ugly cant be right
 
-def run(emit_q):
+def run(emit_q, command_q):
+
+    global cmd_q
+    cmd_q = command_q
     print(f"mpserver running in namespace {__name__} with pid {os.getpid()}")
     print()
     print(f"data accessed from pacakge file {data}")

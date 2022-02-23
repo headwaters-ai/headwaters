@@ -13,17 +13,26 @@ from . import slow_engine
 @click.option(
     "--engine",
     "-e",
-    default=["slow"],
+    default=["fast"],
     multiple=True,
-    help="specify the engine, fast or slow",
+    help="specify the engine, fast and/or slow with -e fast -e slow",
 )
+
+# TODO need to be very clear in docs how to pass a list to the cli
+# i have forgotten right now and can't start multiple
+# hw -e fast -e slow etc...
+
+#### FOR NOW JUST USE THE FAST ENGINE, this is where dev of engine objects is happening ###
+
 def main(engine: str) -> None:
 
     emit_q = Queue()
-    # TODO need a command_q
+
+    command_q = Queue() # TODO but i will need to send a queue to each engine, there could be many
+    # how to do this?
 
     # single server, always
-    server_proc = Thread(target=server.run, args=(emit_q,))
+    server_proc = Thread(target=server.run, args=(emit_q, command_q))
     server_proc.start()
 
     # multi engines
@@ -34,15 +43,16 @@ def main(engine: str) -> None:
     for engine_passed in engines_passed:
 
         if engine_passed == "fast":
-            engines.append(fast_engine.mgr)
+            engines.append(fast_engine.Fast)
+
 
         if engine_passed == "slow":
             engines.append(slow_engine.mgr)
 
     engine_threads = []
 
-    for engine_mgr in engines:
-        engine_threads.append(Thread(target=engine_mgr, args=(emit_q,)))
+    for engine in engines:
+        engine_threads.append(Thread(target=engine, args=(emit_q, command_q)))
 
     for engine_thread in engine_threads:
         engine_thread.start()

@@ -1,1 +1,1 @@
-from .fast import mgr
+from .fast import Fast

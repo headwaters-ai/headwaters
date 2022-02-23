@@ -2,35 +2,53 @@ import threading
 from queue import Queue
 import random
 import time
-from dataclasses import dataclass
 
 """I think this will become an object that holds its state of things
-like frequency, and event scheme, which can be accessed and set"""
+like frequency, and event scheme, which can be accessed and set
 
-class Worker:
+This was overly complex with multi threads per worker, but each engine 
+will be simple to start, espcielly in this explore stage, so simplfiy and 
+take out second layer of threading.
 
-    def __init__(self, emit_q) -> None:
+
+
+"""
+
+class Fast:
+
+    """ this feels like a template object for an engine....
+    
+    the generate method could call a domain thing, data etc, and the domain is passed
+    to the enginer object, but everythign else is standard. this engine object could be
+    instantiated in the cli or the server and then have it's methods called directly,
+    avoiding queues. they could also all just run on the main thread until it becomes necessary 
+    to use threads, seems like unesserayc complexity for now. or i'll smh when i refactor and reslie why...
+    """
+
+    def __init__(self, emit_q, cmd_q) -> None:
         self.emit_q = emit_q
+        self.cmd_q = cmd_q
         self.frequency = 1.0
+        self.run = True
 
- 
+        self.generate() # to auto start, is this legit to call here?
+
     def generate(self):
-        """ this is an example of the deep generator part of each engine, called by the specfici egnine mgr below
-        
-        if this was a class, it could be called as target of mgr with worker.generate
-        then it could have a setter for frequency worker.set_freq(new_freq)
+        """ generates new data and places onto emit_q
         
         """
         
-        while True:
+        while self.run == True:
             item = {
                 "topic": "speedyfastness",
                 "payload": random.random()
             }
             self.emit_q.put(item)
 
-            # for example, this param of time.sleep is how frequency would be controlled...
-            # should this happen at the worker level or up at the mgr?
+            # poll the cmd_q here. if a value, set freq to that, else pass
+
+            if not self.cmd_q.empty():
+                self.set_frequency(self.cmd_q.get())
 
             # TODO there will NEED to be a max freq for performance and CPU etc
 
@@ -40,25 +58,33 @@ class Worker:
         """Setter for frequency"""
         self.frequency = new_freq
 
-def mgr(emit_q):
+    def stop(self):
+        """set self.run to False and stop engine"""
+        self.run = False
 
-    """ currently being called as the target of the cli thread creation
-    """
+    def start(self):
+        """set self.run to True and start engine"""
+        self.run = True
 
-    print(f"this is {__name__} probably headwaters.fast_engine.fast")
+# def mgr(emit_q):
 
-    # create a tuning_q here
+#     """ currently being called as the target of the cli thread creation
+#     """
 
-    threads = []
+#     print(f"this is {__name__} probably headwaters.fast_engine.fast")
 
-    num_thr = 1
+#     # create an internal engine tuning_q here
 
-    for _ in range(num_thr):
-        worker = Worker(emit_q) # passes the emit_q in object init, so not needed as args to thread
-        threads.append(threading.Thread(target=worker.generate)) # pass tuning_q
+#     threads = []
 
-    for thread in threads:
-        thread.start()
+#     num_thr = 1
 
-    for thread in threads:
-        thread.join()
+#     for _ in range(num_thr):
+#         worker = Worker(emit_q) # passes the emit_q in object init, so not needed as args to thread
+#         threads.append(threading.Thread(target=worker.generate)) # pass tuning_q
+
+#     for thread in threads:
+#         thread.start()
+
+#     for thread in threads:
+#         thread.join()
