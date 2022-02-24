@@ -45,6 +45,11 @@ def stop():
 
     return jsonify(server=f"stopped engine {engine.domain.name}")
 
+@sio.event("connect")
+def connect_hndlr():
+    print(f"sio conneciton rcvd {sio.sid}")
+
+
 engines = []
 domains = []
 

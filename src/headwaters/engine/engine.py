@@ -36,10 +36,11 @@ class Engine:
         """generates new data and places onto emit_q"""
 
         while self.run == True:
-            # item = {"domain": self.domain, "payload": random.random()}
-            # print(self.domain, self.frequency)
-            # print(f"emitting to {self.sio}")
-            print(f"engine called domain {self.domain.get_event()}")
+            
+            event = self.domain.get_event()
+            print(f"engine called domain {event}")
+            self.sio.emit("stream", data=event)
+            print("emitted event")
 
             # TODO there will NEED to be a max freq for performance and CPU etc
 
