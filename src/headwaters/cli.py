@@ -19,6 +19,5 @@ def main(domains: str) -> None:
 
     server.run(domains)
 
-
 if __name__ == "__main__":
     main()
