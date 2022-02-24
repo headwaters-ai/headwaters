@@ -52,7 +52,7 @@ def unsubscribe(unsubs: list[str]) -> None:
 
 
 @sio.on("stream")
-def new_price(payload):
+def stream_handler(payload):
     print(f"rcvd event {payload}")
 
 
