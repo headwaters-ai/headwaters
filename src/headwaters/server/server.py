@@ -5,6 +5,8 @@ import pkgutil
 import random
 
 from ..engine import Engine
+from ..domains import Timeseries
+from ..domains import Words
 
 data = pkgutil.get_data(__package__, "data.json")
 data = json.loads(data)
@@ -18,7 +20,7 @@ def index():
     return jsonify(server=f"says hello and {random.random()}")
 
 
-@app.get("/command")
+@app.get("/frequency")
 def command():
     """this could be one route to test in operation param changes across the command_q"""
     new_freq = random.randint(1,6)
@@ -27,26 +29,48 @@ def command():
     # for engine in engines: if engine.domain == xyz then do soemthing
     engine = random.choice(engines)
     engine.set_frequency(new_freq)
-    return jsonify(server=f"adjusted engine {engine.domain} freq to {new_freq}")
+    return jsonify(server=f"adjusted engine {engine.domain.name} freq to {new_freq}")
 
+@app.get('/start')
+def start():
+    engine = random.choice(engines)
+    engine.start()
 
-def emit_mock():
-    """JUST EMIT DIRECTLY
-    """
-    pass
+    return jsonify(server=f"started engine {engine.domain.name}")
+
+@app.get('/stop')
+def stop():
+    engine = random.choice(engines)
+    engine.stop()
+
+    return jsonify(server=f"stopped engine {engine.domain.name}")
 
 engines = []
+domains = []
 
-def run(domains):
+def run(selected_domains):
     """
 
     what about: the Engine instances are created, then the generate method of each is multithreaded...
     could the thread have access to the object properties in that thread? NO surely not
     THIS SEEMS TO WORK?!?!?
 
+    ALSO CAN I KNOW INSTNATIATE ENGINE OBKECT OUTWITH SERVER
+    CAN I TEST THEM WITHOUT USING HTTP REQUESTS??
+
+    now the thinking is to have the domain classed available in the server scope
+    that way i can access the get_event() method of a domain instance fromt he generator thread and
+    also access it for CUD ops
+
     """
 
-    for domain in domains:
+    for selected_domain in selected_domains:
+        if selected_domain == 'timeseries':
+            domain = Timeseries()
+        elif selected_domain == 'words':
+            domain = Words()
+        else:
+            break
         engines.append(Engine(domain, sio))
 
     for engine in engines:
