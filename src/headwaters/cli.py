@@ -9,9 +9,9 @@ from . import server
 @click.option(
     "--domains",
     "-d",
-    default=["fast"],
+    default=["timeseries"],
     multiple=True,
-    help="specify the domain(s) for the server, fast and/or slow with -e fast -e slow",
+    help="specify the domain(s) for the server, with each domain preceded by a -d",
 )
 
 # TODO need to be very clear in docs how to pass a list to the cli

@@ -36,9 +36,10 @@ class Engine:
         """generates new data and places onto emit_q"""
 
         while self.run == True:
-            item = {"domain": self.domain, "payload": random.random()}
-            print(self.domain, self.frequency)
+            # item = {"domain": self.domain, "payload": random.random()}
+            # print(self.domain, self.frequency)
             # print(f"emitting to {self.sio}")
+            print(f"engine called domain {self.domain.get_event()}")
 
             # TODO there will NEED to be a max freq for performance and CPU etc
 
@@ -55,3 +56,6 @@ class Engine:
     def start(self):
         """set self.run to True and start engine"""
         self.run = True
+        self.sio.start_background_task(self.generate)
+
+        return "started"
