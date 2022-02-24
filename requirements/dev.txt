@@ -10,7 +10,7 @@ docutils==0.18.1
 Flask==2.0.2
 Flask-SocketIO==5.1.1
 h11==0.13.0
--e git+https://github.com/headwaters-ai/headwaters.git@35949e2165d32b061964cb6020dfaa7f82cf92e2#egg=headwaters
+-e git+https://github.com/headwaters-ai/headwaters.git@21435030177441505b0bfd042309a3b250bf561d#egg=headwaters
 idna==3.3
 importlib-metadata==4.10.1
 itsdangerous==2.0.1
@@ -38,6 +38,7 @@ tqdm==4.62.3
 twine==3.8.0
 urllib3==1.26.8
 webencodings==0.5.1
+websocket-client==1.2.3
 Werkzeug==2.0.3
 wsproto==1.0.0
 zipp==3.7.0

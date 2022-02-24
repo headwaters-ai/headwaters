@@ -1,52 +1,23 @@
 """ cli.py is the main entry point for the app and the top level """
 
 import click
-from threading import Thread
-from queue import Queue
 
 from . import server
-from . import fast_engine
-from . import slow_engine
 
-
+# TODO need to be very clear in docs how to pass a list to the cli
+# i have forgotten right now and can't start multiple
+# hw -e fast -e slow etc...
 @click.command()
 @click.option(
-    "--engine",
-    "-e",
-    default=["slow"],
+    "--domains",
+    "-d",
+    default=["timeseries"],
     multiple=True,
-    help="specify the engine, fast or slow",
+    help="specify the domain(s) for the server, with each domain preceded by a -d",
 )
-def main(engine: str) -> None:
+def main(domains: str) -> None:
 
-    emit_q = Queue()
-    # TODO need a command_q
-
-    # single server, always
-    server_proc = Thread(target=server.run, args=(emit_q,))
-    server_proc.start()
-
-    # multi engines
-    engines_passed = engine  # engine here is a list, as click opt is multiple
-
-    engines = []
-
-    for engine_passed in engines_passed:
-
-        if engine_passed == "fast":
-            engines.append(fast_engine.mgr)
-
-        if engine_passed == "slow":
-            engines.append(slow_engine.mgr)
-
-    engine_threads = []
-
-    for engine_mgr in engines:
-        engine_threads.append(Thread(target=engine_mgr, args=(emit_q,)))
-
-    for engine_thread in engine_threads:
-        engine_thread.start()
-
+    server.run(domains)
 
 if __name__ == "__main__":
     main()
