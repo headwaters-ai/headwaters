@@ -1,4 +1,5 @@
 import random
+import logging
 
 
 class Words:
@@ -30,5 +31,5 @@ class Words:
 
         """
         self.library.append(new_word)
-        print(self.library)
+        logging.info(self.library)
         return f"added {new_word}"

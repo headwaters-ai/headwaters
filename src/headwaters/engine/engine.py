@@ -1,6 +1,7 @@
-import random
+import logging
 import time
 
+logging.basicConfig(level=logging.DEBUG)
 """I think this will become an object that holds its state of things
 like frequency, and event scheme, which can be accessed and set
 
@@ -31,7 +32,7 @@ class Engine:
         self.burst_counter = 0
         self.burst_frequency = 0.2
 
-        print(f"engine domain object {self.domain.name} is {self.domain}")
+        logging.info(f"engine domain object {self.domain.name} is {self.domain}")
 
         # self.generate()  # to auto start, is this legit to call here?
 
@@ -39,7 +40,7 @@ class Engine:
         """collects new event data from the passed domain instance and emits event"""
 
         event = self.domain.get_event()
-        print(f"engine called domain {event}")
+        # logging.info(f"engine called domain {event}")
         self.sio.emit("stream", data=event)
 
     def generate(self):

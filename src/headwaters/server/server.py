@@ -3,6 +3,9 @@ from flask_socketio import SocketIO
 import json
 import pkgutil
 import random
+import logging
+logging.basicConfig(level=logging.INFO)
+
 
 from ..engine import Engine
 from ..domains import Timeseries
@@ -80,7 +83,7 @@ def add_word():
 
 @sio.event("connect")
 def connect_hndlr():
-    print(f"sio conneciton rcvd {sio.sid}")
+    logging.info(f"sio conneciton rcvd {sio.sid}")
 
 
 engines = []
@@ -105,10 +108,8 @@ def run(selected_domains):
     for selected_domain in selected_domains:
         if selected_domain == "timeseries":
             domain = Timeseries()
-            print(f"timeseries domain class instance {domain}")
         elif selected_domain == "words":
             domain = Words()
-            print(f"words domain class instance {domain}")
 
         else:
             break

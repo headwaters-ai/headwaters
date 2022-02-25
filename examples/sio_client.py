@@ -7,6 +7,8 @@ Especially:
 
 """
 import socketio
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 sio = socketio.Client()
@@ -18,12 +20,12 @@ while not connected:
     try:
         sio.connect(f"http://127.0.0.1:5000")
     except socketio.exceptions.ConnectionError:
-        print("startup connection to server failed... retrying")
+        logging.info("startup connection to server failed... retrying")
         sio.sleep(1)
     else:
         connected = True
 
-print(f"startup connection success with sid {sio.get_sid()}")
+logging.info(f"startup connection success with sid {sio.get_sid()}")
 
 def subscribe(subs: list[str]) -> None:
     """Subscribes to each room in passed list."""
@@ -31,7 +33,7 @@ def subscribe(subs: list[str]) -> None:
     if not isinstance(subs, list) or not all(isinstance(sub, str) for sub in subs):
         raise TypeError(f"subs must be a list of str, supplied {type(subs)}")
     for sub in subs:
-        print(f"client subbed to room {sub}")
+        logging.info(f"client subbed to room {sub}")
         # TODO make this a POST call 
         # then an ack can be rcvd
         sio.emit("subscribe", data={"room": sub})
@@ -45,7 +47,7 @@ def unsubscribe(unsubs: list[str]) -> None:
     ):
         raise TypeError(f"subs must be a list of str, supplied {type(unsubs)}")
     for unsub in unsubs:
-        print(f"client unsubbed from room {unsub}")
+        logging.info(f"client unsubbed from room {unsub}")
         # TODO make this a POST call 
         # then an ack can be rcvd
         sio.emit("unsubscribe", data={"room": unsub})
@@ -53,22 +55,22 @@ def unsubscribe(unsubs: list[str]) -> None:
 
 @sio.on("stream")
 def stream_handler(payload):
-    print(f"rcvd event {payload}")
+    logging.info(f"rcvd event {payload}")
 
 
 @sio.on("connect")
 def connect():
-    print(f"sio client connected")
+    logging.info(f"sio client connected")
     # subscribe(subs)
 
 @sio.on("connect_error")
 def connect_error(e):
-    print(f"connection error during operation... retrying")
+    logging.info(f"connection error during operation... retrying")
 
 
 @sio.on("disconnect")
 def disconnect():
-    print(f"sio client disconnected")
+    logging.info(f"sio client disconnected")
 
 if __name__ == "__main__":
     # subscribe(subs)
