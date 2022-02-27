@@ -1,14 +1,28 @@
 import pandas as pd
 import random
-from marshmallow import Schema, fields, ValidationError, validates
-from pprint import pprint
+from marshmallow import Schema, ValidationError
+import logging
 
+from .fruits import data as fruits_data
+from .fruits import model as fruits_model
 
 class Domain:
-    def __init__(self, data, model):
+
+    """
+    This needs to be passed just a string indictaing the domain type,
+    and the instance needs to grab the data and model from the right place
+    using the pckg data
+
+    this needs the getters and setter for data to be added
+    """
+    def __init__(self, domain):
+        self.name = domain
+        if self.name == 'fruits':
+            self.model = fruits_model
+        logging.info(self.model)
         
-        self.model = model
-        self.data = data
+        self.data = fruits_data
+        logging.info(self.data)
 
         self.process_passed_data()
 
@@ -50,7 +64,7 @@ class Domain:
             DataSchema(many=True).load(self.data)
             return True
         except ValidationError as e:
-            pprint(e)
+            logging.info(e)
             return False
 
     def new_event(self):

@@ -8,11 +8,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 from ..engine import Engine
-from ..domains import Timeseries
-from ..domains import Words
+from ..domains import Domain
 
-data = pkgutil.get_data(__package__, "data.json")
-data = json.loads(data)
+
 
 app = Flask("hw-server")
 sio = SocketIO(app)
@@ -100,21 +98,15 @@ def run(selected_domains):
     CAN I TEST THEM WITHOUT USING HTTP REQUESTS??
 
     now the thinking is to have the domain classed available in the server scope
-    that way i can access the get_event() method of a domain instance fromt he generator thread and
+    that way i can access the new_event() method of a domain instance fromt he generator thread and
     also access it for CUD ops
 
     """
 
     for selected_domain in selected_domains:
-        if selected_domain == "timeseries":
-            domain = Timeseries()
-        elif selected_domain == "words":
-            domain = Words()
-
-        else:
-            break
-        engines.append(Engine(domain, sio))
+        domain = Domain(selected_domain)
         domains.append(domain)
+        engines.append(Engine(domain, sio))
 
     for engine in engines:
         sio.start_background_task(target=engine.generate)
