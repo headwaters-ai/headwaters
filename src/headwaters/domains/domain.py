@@ -1,11 +1,81 @@
+import pandas as pd
+import random
+from marshmallow import Schema, fields, ValidationError, validates
+from pprint import pprint
+
+
 class Domain:
+    def __init__(self, data, model):
+        
+        self.model = model
+        self.data = data
 
-    """this is a class that:
-    
-    reads info from a json file into memory
+        self.process_passed_data()
 
-    
-    have get_event method to supply a new event
-    """
+        if not self.validate_data():
+            raise ValueError(f"model to data validation error")
 
-    data = ["avocado", "banana", "cherry", "dates", "elderberries"]
+    def process_passed_data(self):
+        """use pandas to comvert any passed data shape to a nice shape"""
+        key_list = []
+
+        for k in self.model.keys():
+            if self.model[k]["stream"]["existing"]:
+                key_list.append(k)
+
+        columns = key_list
+
+        df = pd.DataFrame(data=self.data, columns=columns)
+
+        self.data = df.to_dict(orient="records")
+
+    def create_data_schema(self):
+        """create a marshmallow schema from passed model looking for data def only"""
+        d = {}
+        for k in self.model.keys():
+            d.update({k: self.model[k]["field"]})
+
+        DataSchema = Schema.from_dict(d)
+        return DataSchema
+
+    def validate_data(self):
+        """
+        use create marshmallow instance to validate passed data
+        """
+
+        DataSchema = self.create_data_schema()
+
+        try:
+
+            DataSchema(many=True).load(self.data)
+            return True
+        except ValidationError as e:
+            pprint(e)
+            return False
+
+    def new_event(self):
+        """Once loaded, shaped and validated against the model this method can then be safely called"""
+
+        new_event = {}
+
+        for k in self.model.keys():
+
+            field = self.model[k]["stream"]
+            default = self.model[k]["stream"]["default"]
+            if field["include"]:
+                if field["type"] == "choice":
+                    try:
+                        new_event[k] = random.choice(self.data)[k]
+                    except KeyError:
+                        """ handles where an event field not in the original data is being picked from"""
+                        new_event[k] = default
+                if field["type"] == "increment":
+                    try:
+                        new_event[k] = self.data[-1][k] + 1
+                    except:
+                        new_event[k] = 10000
+                if field["type"] == "infer":
+                    new_event[k] = "inference function called here"
+                
+        self.data.append(new_event)
+        return new_event
