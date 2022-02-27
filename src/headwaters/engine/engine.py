@@ -39,8 +39,8 @@ class Engine:
     def collect_emit(self):
         """collects new event data from the passed domain instance and emits event"""
 
-        event = self.domain.get_event()
-        # logging.info(f"engine called domain {event}")
+        event = self.domain.new_event()
+        logging.info(f"engine called domain {event}")
         self.sio.emit("stream", data=event)
 
     def generate(self):

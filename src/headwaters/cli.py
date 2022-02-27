@@ -1,6 +1,7 @@
 """ cli.py is the main entry point for the app and the top level """
 
 import click
+import logging
 
 from . import server
 
@@ -11,7 +12,7 @@ from . import server
 @click.option(
     "--domains",
     "-d",
-    default=["timeseries"],
+    default=["fruits"],
     multiple=True,
     help="specify the domain(s) for the server, with each domain preceded by a -d",
 )

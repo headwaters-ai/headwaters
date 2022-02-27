@@ -1,2 +1,1 @@
-from .timeseries import Timeseries
-from .words import Words
+from .domain import Domain
