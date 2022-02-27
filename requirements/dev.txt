@@ -10,23 +10,28 @@ docutils==0.18.1
 Flask==2.0.2
 Flask-SocketIO==5.1.1
 h11==0.13.0
--e git+https://github.com/headwaters-ai/headwaters.git@21435030177441505b0bfd042309a3b250bf561d#egg=headwaters
+-e git+https://github.com/headwaters-ai/headwaters.git@e2d1f6eda0963716660497d16f1ffd9a6a7af54d#egg=headwaters
 idna==3.3
 importlib-metadata==4.10.1
 itsdangerous==2.0.1
 Jinja2==3.0.3
 keyring==23.5.0
 MarkupSafe==2.0.1
+marshmallow==3.14.1
 mypy-extensions==0.4.3
+numpy==1.22.2
 packaging==21.3
+pandas==1.4.1
 pathspec==0.9.0
 pep517==0.12.0
 pkginfo==1.8.2
 platformdirs==2.5.0
 Pygments==2.11.2
 pyparsing==3.0.7
+python-dateutil==2.8.2
 python-engineio==4.3.1
 python-socketio==5.5.1
+pytz==2021.3
 readme-renderer==32.0
 requests==2.27.1
 requests-toolbelt==0.9.1
