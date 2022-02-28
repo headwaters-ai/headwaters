@@ -1,15 +1,14 @@
 from flask import Flask, jsonify
 from flask_socketio import SocketIO
-import json
-import pkgutil
+
 import random
 import logging
+
 logging.basicConfig(level=logging.INFO)
 
 
 from ..engine import Engine
 from ..domains import Domain
-
 
 
 app = Flask("hw-server")
@@ -66,18 +65,19 @@ def error_on():
 
     return jsonify(server=f"error mode set for engine {engine.domain.name}")
 
-@app.get('/add_word')
+
+@app.get("/add_word")
 def add_word():
-    this_domain = 'words'
+    this_domain = "words"
 
     r = "huh"
     for domain in domains:
         if this_domain == domain.name:
-            r = domain.set_word('fig')
+            r = domain.set_word("fig")
             break
-        
 
     return jsonify(server=r)
+
 
 @sio.event("connect")
 def connect_hndlr():
@@ -86,6 +86,7 @@ def connect_hndlr():
 
 engines = []
 domains = []
+
 
 def run(selected_domains):
     """

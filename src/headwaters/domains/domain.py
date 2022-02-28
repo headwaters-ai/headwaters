@@ -44,10 +44,15 @@ class Domain:
         self.data = df.to_dict(orient="records")
 
     def create_data_schema(self):
-        """create a marshmallow schema from passed model looking for data def only"""
+        """create a marshmallow schema from passed model looking for data def only
+        only therefore applies to data that exists in the data files, so can exlude
+        existing: False
+        
+        """
         d = {}
         for k in self.model.keys():
-            d.update({k: self.model[k]["field"]})
+            if self.model[k]['stream']['existing']:
+                d.update({k: self.model[k]["field"]})
 
         DataSchema = Schema.from_dict(d)
         return DataSchema

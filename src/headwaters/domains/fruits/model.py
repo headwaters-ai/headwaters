@@ -21,9 +21,9 @@ model = {
         },
     },
     "price": {
-        "field": fields.Float(missing=random.randint(2, 200)),
+        # "field": fields.Float(missing=random.randint(2, 200)),
         "stream": {
-            "type": "infer",
+            "type": "increment",
             "default": 69.69,
             "include": True,
             "existing": False,
