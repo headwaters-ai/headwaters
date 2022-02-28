@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO
 
 import random
@@ -66,14 +66,17 @@ def error_on():
     return jsonify(server=f"error mode set for engine {engine.domain.name}")
 
 
-@app.get("/add_word")
+@app.post("/add_field")
 def add_word():
-    this_domain = "words"
+
+    data = request.json
+
+    this_domain = data['domain']
 
     r = "huh"
     for domain in domains:
         if this_domain == domain.name:
-            r = domain.set_word("fig")
+            r = domain.set_field(data)
             break
 
     return jsonify(server=r)
