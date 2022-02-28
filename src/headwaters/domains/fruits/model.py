@@ -6,7 +6,7 @@ model = {
         "field": fields.String(required=True),
         "stream": {
             "type": "choice",
-            "default": 'tangerine',
+            "default": ['tangerine', 'tango', 'turtles'],
             "include": True,
             "existing": True,
         },

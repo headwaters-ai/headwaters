@@ -24,6 +24,8 @@ class Domain:
         self.data = fruits_data
         logging.info(self.data)
 
+        self.new_data = [] # holding solution for the expanign choice issue
+
         self.process_passed_data()
 
         if not self.validate_data():
@@ -73,7 +75,13 @@ class Domain:
             return False
 
     def new_event(self):
-        """Once loaded, shaped and validated against the model this method can then be safely called"""
+        """Once loaded, shaped and validated against the model this method can then be safely called
+        
+        the stream part of the model is defo going to need a schema validator: ie
+        the actual generator types and setting needs a lot of work also
+        if type == choice then default mut be list of len min 1 etc etc
+        if exsiting == True, then must have field definition
+        """
 
         new_event = {}
 
@@ -87,14 +95,21 @@ class Domain:
                         new_event[k] = random.choice(self.data)[k]
                     except KeyError:
                         """ handles where an event field not in the original data is being picked from"""
-                        new_event[k] = default
+                        new_event[k] = random.choice(default)
                 if field["type"] == "increment":
                     try:
-                        new_event[k] = self.data[-1][k] + 1
+                        new_event[k] = self.new_data[-1][k] + 1
                     except:
-                        new_event[k] = 10000
+                        new_event[k] = default  
                 if field["type"] == "infer":
                     new_event[k] = "inference function called here"
                 
-        self.data.append(new_event)
+        self.new_data.append(new_event)
         return new_event
+
+    def set_field(self, data):
+        """ setter to add a new field to running domain instance """
+        new_field = data['new_field']
+        self.model[new_field] = data['settings']
+
+        return "set_field complete"
