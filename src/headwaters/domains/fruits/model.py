@@ -1,6 +1,14 @@
 from marshmallow import fields
 import random
 
+data = [
+    {"fruit": "apple", "item": 1},
+    {"fruit": "banana", "item": 2},
+    {"fruit": "cherry", "item": 3},
+    {"fruit": "damson", "item": 4},
+    {"fruit": "elderberry", "item": 5}
+]
+
 model = {
     "fruit": {
         "field": fields.String(required=True),

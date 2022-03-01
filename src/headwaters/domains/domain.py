@@ -3,8 +3,8 @@ import random
 from marshmallow import Schema, ValidationError
 import logging
 
-from .fruits import data as fruits_data
-from .fruits import model as fruits_model
+from .fruits.model import data as fruits_data
+from .fruits.model import model as fruits_model
 
 class Domain:
 
