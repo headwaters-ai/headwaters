@@ -2,6 +2,9 @@
 
 import click
 import logging
+import random
+import time
+
 logging.basicConfig(level=logging.ERROR)
 from colorama import Fore, Back, Style
 
@@ -21,7 +24,13 @@ from . import server
 def main(domains: str) -> None:
 
     logging.info('server started')
-    print(Fore.BLUE + 'headwaters streaming server pouring forth...')
+
+    
+    print()
+    time.sleep(0.2)
+    print(Fore.BLUE + "Headwaters: Simple Stream Sources" + Style.RESET_ALL)
+    time.sleep(0.3)
+    print()
     server.run(domains)
 
 if __name__ == "__main__":

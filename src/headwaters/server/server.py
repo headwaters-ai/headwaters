@@ -100,7 +100,6 @@ def add_word():
 @app.route('/ui', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
-    print(path)
     if path.endswith('.js'):
         r = pkgutil.get_data("headwaters", f"{path}")
         return Response(r, mimetype="text/javascript")
@@ -150,12 +149,16 @@ def run(selected_domains):
 
     port = 5555 # set up a config file
 
-    print(Fore.GREEN + f"streams running here: http://127.0.0.1:{port}")
+    print(Fore.GREEN + Style.BRIGHT + f"STREAMS RUNNING: http://127.0.0.1:{port}"  + Style.RESET_ALL)
+    print(Fore.CYAN + Style.BRIGHT + f"UI RUNNING: http://127.0.0.1:{port}/ui" + Style.RESET_ALL)
+    print()
+    print(Fore.RED + Style.DIM + "(CTRL-C to stop)" + Style.RESET_ALL)
 
     sio.run(app, debug=False, port=port)
 
     print()
     print(f"Server stopping...")
+    print()
 
     for engine in engines:
         engine.stop()
