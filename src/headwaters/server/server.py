@@ -5,8 +5,22 @@ import random
 import logging
 import pkgutil
 import threading
+import click
+
+from colorama import Fore, Back, Style
 
 logging.basicConfig(level=logging.INFO)
+flask_log = logging.getLogger('werkzeug')
+flask_log.setLevel(logging.ERROR)
+
+def secho(text, file=None, nl=None, err=None, color=None, **styles):
+    pass
+
+def echo(text, file=None, nl=None, err=None, color=None, **styles):
+    pass
+
+click.echo = echo
+click.secho = secho
 
 
 from ..engine import Engine
@@ -120,7 +134,7 @@ def run(selected_domains):
     """
 
     """
-
+    
     for selected_domain in selected_domains:
         domain = Domain(selected_domain)
         domains.append(domain)
@@ -134,7 +148,11 @@ def run(selected_domains):
     for engine_thread in engine_threads:
         engine_thread.start()
 
-    sio.run(app, debug=False, port=5555)
+    port = 5555 # set up a config file
+
+    print(Fore.GREEN + f"streams running here: http://127.0.0.1:{port}")
+
+    sio.run(app, debug=False, port=port)
 
     print()
     print(f"Server stopping...")
