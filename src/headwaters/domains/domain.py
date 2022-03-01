@@ -19,10 +19,10 @@ class Domain:
         self.name = domain
         if self.name == 'fruits':
             self.model = fruits_model
-        logging.info(self.model)
+        # logging.info(self.model)
         
         self.data = fruits_data
-        logging.info(self.data)
+        # logging.info(self.data)
 
         self.new_data = [] # holding solution for the expanign choice issue
 

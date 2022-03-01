@@ -32,15 +32,11 @@ class Engine:
         self.burst_counter = 0
         self.burst_frequency = 0.2
 
-        logging.info(f"engine domain object {self.domain.name} is {self.domain}")
-
-        # self.generate()  # to auto start, is this legit to call here?
-
     def collect_emit(self):
         """collects new event data from the passed domain instance and emits event"""
 
         event = self.domain.new_event()
-        logging.info(f"engine called domain {event}")
+        # logging.info(f"engine called domain {event}")
         self.sio.emit("stream", data=event)
 
     def generate(self):

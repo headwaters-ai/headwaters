@@ -4,6 +4,7 @@ from flask_socketio import SocketIO
 import random
 import logging
 import pkgutil
+import threading
 
 logging.basicConfig(level=logging.INFO)
 
@@ -118,17 +119,6 @@ domains = []
 def run(selected_domains):
     """
 
-    what about: the Engine instances are created, then the generate method of each is multithreaded...
-    could the thread have access to the object properties in that thread? NO surely not
-    THIS SEEMS TO WORK?!?!?
-
-    ALSO CAN I KNOW INSTNATIATE ENGINE OBKECT OUTWITH SERVER
-    CAN I TEST THEM WITHOUT USING HTTP REQUESTS??
-
-    now the thinking is to have the domain classed available in the server scope
-    that way i can access the new_event() method of a domain instance fromt he generator thread and
-    also access it for CUD ops
-
     """
 
     for selected_domain in selected_domains:
@@ -136,7 +126,18 @@ def run(selected_domains):
         domains.append(domain)
         engines.append(Engine(domain, sio))
 
+    engine_threads = []
     for engine in engines:
-        sio.start_background_task(target=engine.generate)
+        # sio.start_background_task(target=engine.generate)
+        engine_threads.append(threading.Thread(target=engine.generate))
 
-    sio.run(app, debug=False)
+    for engine_thread in engine_threads:
+        engine_thread.start()
+
+    sio.run(app, debug=False, port=5555)
+
+    print()
+    print(f"Server stopping...")
+
+    for engine in engines:
+        engine.stop()
