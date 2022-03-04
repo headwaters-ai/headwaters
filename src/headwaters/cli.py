@@ -28,7 +28,7 @@ def main(domains: str) -> None:
     
     print()
     time.sleep(0.2)
-    print(Fore.BLUE + "Headwaters: Simple Stream Sources" + Style.RESET_ALL)
+    print(Fore.BLUE + Style.BRIGHT + "Headwaters:" + Style.NORMAL+ " Simple Stream Sources" + Style.RESET_ALL)
     time.sleep(0.3)
     print()
     server.run(domains)

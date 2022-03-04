@@ -149,8 +149,8 @@ def run(selected_domains):
 
     port = 5555 # set up a config file
 
-    print(Fore.GREEN + Style.BRIGHT + f"STREAMS RUNNING: http://127.0.0.1:{port}"  + Style.RESET_ALL)
-    print(Fore.CYAN + Style.BRIGHT + f"UI RUNNING: http://127.0.0.1:{port}/ui" + Style.RESET_ALL)
+    print(Fore.GREEN + Style.BRIGHT + f"STREAMS: http://127.0.0.1:{port}"  + Style.RESET_ALL)
+    print(Fore.CYAN + Style.BRIGHT + f"UI: http://127.0.0.1:{port}/ui" + Style.RESET_ALL)
     print()
     print(Fore.RED + Style.DIM + "(CTRL-C to stop)" + Style.RESET_ALL)
 
