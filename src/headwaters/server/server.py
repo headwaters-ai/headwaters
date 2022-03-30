@@ -102,22 +102,27 @@ def add_word():
 def catch_all(path):
     if path.endswith('.js'):
         r = pkgutil.get_data("headwaters", f"{path}")
+        print(f"{request}")
         return Response(r, mimetype="text/javascript")
 
     elif path.endswith('.css'):
         r = pkgutil.get_data("headwaters", f"{path}")
+        print(f"{request}")
         return Response(r, mimetype="text/css")
 
     elif path.endswith('.ico'):
         r = pkgutil.get_data("headwaters", f"{path}")
+        print(f"{request}")
         return Response(r, mimetype="text/application")
 
     elif path.endswith('.svg'):
         r = pkgutil.get_data("headwaters", f"{path}")
+        print(f"{request}")
         return Response(r, mimetype="image/svg+xml")
 
     else:
         r = pkgutil.get_data("headwaters.ui", "index.html")
+        print(f"{request}")
         return Response(r, mimetype="text/html")
 
 @sio.event("connect")
