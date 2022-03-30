@@ -18,7 +18,7 @@ connected = False
 
 while not connected:
     try:
-        sio.connect(f"http://127.0.0.1:5000")
+        sio.connect(f"http://127.0.0.1:5555")
     except socketio.exceptions.ConnectionError:
         logging.info("startup connection to server failed... retrying")
         sio.sleep(1)
