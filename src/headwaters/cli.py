@@ -2,7 +2,6 @@
 
 import click
 import logging
-import random
 import time
 
 logging.basicConfig(level=logging.ERROR)

@@ -17,7 +17,11 @@ class Engine:
     """blueprint for an engine, which is passed a domain class instance to call for data"""
 
     def __init__(self, domain, sio_app) -> None:
+
+        if not isinstance(domain, int):
+            pass
         self.domain = domain
+        # print(type(self.domain))
         self.sio = sio_app
 
         self.frequency = 1.0
