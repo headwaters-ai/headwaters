@@ -35,6 +35,11 @@ sio = SocketIO(app)
 def index():
     return jsonify(server=f"says hello and {random.random()}")
 
+@app.get('/ping')
+def ping():
+    print(f"pong")
+    return jsonify(server_msg=f"pong: {random.randint(1,100)}")
+
 
 @app.get("/start")
 def start():
