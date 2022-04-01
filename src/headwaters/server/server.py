@@ -1,23 +1,28 @@
 from flask import Flask, jsonify, request, send_file, Response
 from flask_socketio import SocketIO
+from flask_cors import CORS
 
 import random
 import logging
 import pkgutil
 import threading
 import click
+import time
 
 from colorama import Fore, Back, Style
 
 logging.basicConfig(level=logging.INFO)
-flask_log = logging.getLogger('werkzeug')
+flask_log = logging.getLogger("werkzeug")
 flask_log.setLevel(logging.ERROR)
+
 
 def secho(text, file=None, nl=None, err=None, color=None, **styles):
     pass
 
+
 def echo(text, file=None, nl=None, err=None, color=None, **styles):
     pass
+
 
 click.echo = echo
 click.secho = secho
@@ -28,34 +33,73 @@ from ..domains import Domain
 
 
 app = Flask("hw-server")
+CORS(app)
 sio = SocketIO(app)
 
 
 @app.get("/")
 def index():
-    return jsonify(server=f"says hello and {random.random()}")
+    return jsonify(msg=f"says hello and {random.random()}")
 
-@app.get('/ping')
+
+@app.get("/ping")
 def ping():
     print(f"pong")
-    return jsonify(server_msg=f"pong: {random.randint(1,100)}")
+    return jsonify(pong=random.randint(1, 100))
 
 
 @app.get("/start")
 def start():
-    engine = random.choice(engines)
-    engine.start()
+    stream_name = request.args.get("stream_name", None)
 
-    return jsonify(server=f"started engine {engine.domain.name}")
+    if stream_name:
+        for engine in engines:
+            if engine.domain.name == stream_name:
+                engine.start()
+                r = engine.stream_status
+                return jsonify(r)
+
+        return jsonify(msg=f"stream engine {stream_name} has not been created")
+
+    else:
+        return jsonify(
+            msg=f"please specify a stream name in url params using 'stream_name' = "
+        )
 
 
 @app.get("/stop")
 def stop():
-    engine = random.choice(engines)
-    engine.stop()
+    stream_name = request.args.get("stream_name", None)
 
-    return jsonify(server=f"stopped engine {engine.domain.name}")
+    if stream_name:
+        for engine in engines:
+            if engine.domain.name == stream_name:
+                engine.stop()
+                r = engine.stream_status
+                return jsonify(r)
 
+        return jsonify(msg=f"stream {stream_name} has not been created")
+    else:
+        return jsonify(
+            msg=f"please specify a stream name in url params using 'stream_name' = "
+        )
+
+@app.get('/stream_status')
+def stream_status():
+    stream_name = request.args.get("stream_name", None)
+
+    if stream_name:
+        for engine in engines:
+            if engine.domain.name == stream_name:
+                r = engine.stream_status
+                # return jsonify(data=f"{r}")
+                return jsonify(r)
+
+        return jsonify(msg=f"stream {stream_name} has not been created")
+    else:
+        return jsonify(
+            msg=f"please specify a stream name in url params using 'stream_name' = "
+        )
 
 @app.get("/frequency")
 def command():
@@ -66,7 +110,7 @@ def command():
     # for engine in engines: if engine.domain == xyz then do soemthing
     engine = random.choice(engines)
     engine.set_frequency(new_freq)
-    return jsonify(server=f"adjusted engine {engine.domain.name} freq to {new_freq}")
+    return jsonify(msg=f"adjusted engine {engine.domain.name} freq to {new_freq}")
 
 
 @app.get("/burst")
@@ -75,7 +119,7 @@ def burst():
     engine.set_burst()
 
     return jsonify(
-        server=f"initiated burst for engine {engine.domain.name} with {engine.burst_limit}"
+        msg=f"initiated burst for engine {engine.domain.name} with {engine.burst_limit}"
     )
 
 
@@ -84,7 +128,7 @@ def error_on():
     engine = random.choice(engines)
     engine.set_error_mode_on()
 
-    return jsonify(server=f"error mode set for engine {engine.domain.name}")
+    return jsonify(msg=f"error mode set for engine {engine.domain.name}")
 
 
 @app.post("/add_field")
@@ -92,7 +136,7 @@ def add_word():
 
     data = request.json
 
-    this_domain = data['domain']
+    this_domain = data["domain"]
 
     r = "huh"
     for domain in domains:
@@ -100,27 +144,28 @@ def add_word():
             r = domain.set_field(data)
             break
 
-    return jsonify(server=r)
+    return jsonify(msg=r)
 
-@app.route('/ui', defaults={'path': ''})
-@app.route('/<path:path>')
+
+@app.route("/ui", defaults={"path": ""})
+@app.route("/<path:path>")
 def catch_all(path):
-    if path.endswith('.js'):
+    if path.endswith(".js"):
         r = pkgutil.get_data("headwaters", f"{path}")
         print(f"{request}")
         return Response(r, mimetype="text/javascript")
 
-    elif path.endswith('.css'):
+    elif path.endswith(".css"):
         r = pkgutil.get_data("headwaters", f"{path}")
         print(f"{request}")
         return Response(r, mimetype="text/css")
 
-    elif path.endswith('.ico'):
+    elif path.endswith(".ico"):
         r = pkgutil.get_data("headwaters", f"{path}")
         print(f"{request}")
         return Response(r, mimetype="text/application")
 
-    elif path.endswith('.svg'):
+    elif path.endswith(".svg"):
         r = pkgutil.get_data("headwaters", f"{path}")
         print(f"{request}")
         return Response(r, mimetype="image/svg+xml")
@@ -129,6 +174,7 @@ def catch_all(path):
         r = pkgutil.get_data("headwaters.ui", "index.html")
         print(f"{request}")
         return Response(r, mimetype="text/html")
+
 
 @sio.event("connect")
 def connect_hndlr():
@@ -140,10 +186,8 @@ domains = []
 
 
 def run(selected_domains):
-    """
+    """ """
 
-    """
-    
     for selected_domain in selected_domains:
         domain = Domain(selected_domain)
         domains.append(domain)
@@ -157,10 +201,17 @@ def run(selected_domains):
     for engine_thread in engine_threads:
         engine_thread.start()
 
-    port = 5555 # set up a config file
+    port = 5555  # set up a config file
 
-    print(Fore.GREEN + Style.BRIGHT + f"STREAMS: http://127.0.0.1:{port}"  + Style.RESET_ALL)
-    print(Fore.CYAN + Style.BRIGHT + f"UI: http://127.0.0.1:{port}/ui" + Style.RESET_ALL)
+    print(
+        Fore.GREEN
+        + Style.BRIGHT
+        + f"STREAMS: http://127.0.0.1:{port}"
+        + Style.RESET_ALL
+    )
+    print(
+        Fore.CYAN + Style.BRIGHT + f"UI: http://127.0.0.1:{port}/ui" + Style.RESET_ALL
+    )
     print()
     print(Fore.RED + Style.DIM + "(CTRL-C to stop)" + Style.RESET_ALL)
 
