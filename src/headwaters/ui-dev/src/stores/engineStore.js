@@ -9,37 +9,35 @@ export const useEngineStore = defineStore({
   actions: {
     getStreamStatus(streamName) {
       return requests.getStreamStatus(streamName)
-      .then(response => {
-          console.log('stream status rcvd' , response.data)
+        .then(response => {
+          console.log('stream status rcvd', response.data)
           this.stream = response.data
           console.log('stream state:', this.stream)
-      })
-      .catch(error => {
+        })
+        .catch(error => {
           console.log("issue getting stream status", error)
           throw error
-      })
+        })
     },
     startStream(streamName) {
       return requests.startStream(streamName)
-      .then(response => {
+        .then(response => {
           this.stream = response.data
-          console.log('stream state:', this.stream)
-      })
-      .catch(error => {
+        })
+        .catch(error => {
           console.log("error issuing start command", error)
           throw error
-      })
+        })
     },
     stopStream(streamName) {
       return requests.stopStream(streamName)
-      .then(response => {
+        .then(response => {
           this.stream = response.data
-          console.log('stream state:', this.stream)
-      })
-      .catch(error => {
+        })
+        .catch(error => {
           console.log("error issuing stop command", error)
           throw error
-      })
+        })
     }
   }
 })

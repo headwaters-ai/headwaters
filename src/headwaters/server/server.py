@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_file, Response
+from flask import Flask, jsonify, request, Response
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -11,9 +11,10 @@ import time
 
 from colorama import Fore, Back, Style
 
-logging.basicConfig(level=logging.INFO)
 flask_log = logging.getLogger("werkzeug")
 flask_log.setLevel(logging.ERROR)
+
+
 
 
 def secho(text, file=None, nl=None, err=None, color=None, **styles):
@@ -44,12 +45,18 @@ def index():
 
 @app.get("/ping")
 def ping():
-    print(f"pong")
+    logging.info(f"pong")
     return jsonify(pong=random.randint(1, 100))
 
 
 @app.get("/start")
 def start():
+
+    """route to start the stream provided a stream_name in the url params
+
+    returns the stream_status so the client can retieve latest state
+    """
+
     stream_name = request.args.get("stream_name", None)
 
     if stream_name:
@@ -57,6 +64,7 @@ def start():
             if engine.domain.name == stream_name:
                 engine.start()
                 r = engine.stream_status
+                logging.info(f"start route for {stream_name}, response: {r}")
                 return jsonify(r)
 
         return jsonify(msg=f"stream engine {stream_name} has not been created")
@@ -69,6 +77,12 @@ def start():
 
 @app.get("/stop")
 def stop():
+
+    """route to stop the stream provided a stream_name in the url params
+
+    returns the stream_status so the client can retieve latest state
+    """
+
     stream_name = request.args.get("stream_name", None)
 
     if stream_name:
@@ -76,6 +90,7 @@ def stop():
             if engine.domain.name == stream_name:
                 engine.stop()
                 r = engine.stream_status
+                logging.info(f"stop route for {stream_name}, response: {r}")
                 return jsonify(r)
 
         return jsonify(msg=f"stream {stream_name} has not been created")
@@ -84,15 +99,22 @@ def stop():
             msg=f"please specify a stream name in url params using 'stream_name' = "
         )
 
-@app.get('/stream_status')
+
+@app.get("/stream_status")
 def stream_status():
+    """a general purpose route to enable quick acquisition of a stream state
+
+    uses the stream_status @property (not a method to call)
+
+    returns the stream_status so the client can retieve latest state
+    """
+
     stream_name = request.args.get("stream_name", None)
 
     if stream_name:
         for engine in engines:
             if engine.domain.name == stream_name:
                 r = engine.stream_status
-                # return jsonify(data=f"{r}")
                 return jsonify(r)
 
         return jsonify(msg=f"stream {stream_name} has not been created")
@@ -100,6 +122,7 @@ def stream_status():
         return jsonify(
             msg=f"please specify a stream name in url params using 'stream_name' = "
         )
+
 
 @app.get("/frequency")
 def command():

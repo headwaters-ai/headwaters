@@ -14,12 +14,12 @@ export default {
     return apiClient.get("/ping");
   },
   getStreamStatus(streamName) {
-    return apiClient.get("/stream_status", {params: {'stream_name': streamName}});
+    return apiClient.get("/stream_status", { params: { 'stream_name': streamName } });
   },
   startStream(streamName) {
-    return apiClient.get("/start", {params: {'stream_name': streamName}});
+    return apiClient.get("/start", { params: { 'stream_name': streamName } });
   },
   stopStream(streamName) {
-    return apiClient.get("/stop", {params: {'stream_name': streamName}});
+    return apiClient.get("/stop", { params: { 'stream_name': streamName } });
   }
 };

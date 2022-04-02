@@ -1,7 +1,8 @@
 import logging
 import time
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(filename='engine.log', level=logging.DEBUG)
+
 
 class Engine:
 
@@ -12,7 +13,6 @@ class Engine:
         if not isinstance(domain, int):
             pass
         self.domain = domain
-        # print(type(self.domain))
         self.sio = sio_app
 
         self.frequency = 1.0
@@ -28,17 +28,22 @@ class Engine:
         self.burst_frequency = 0.2
 
     def start(self) -> str:
-        """set self.running to True and start engine"""
+        """set self.running to True and start engine if it is stopped
+
+        guards against multiple starts
+        """
         if not self.running:
             self.running = True
             self.limit_counter = 0
             self.sio.start_background_task(self.generate)
+            logging.info(f"engine {self.domain.name} started")
             return f"stream {self.domain.name} started"
         else:
             return f"stream {self.domain.name} already running"
 
     def stop(self):
-        """set self.running to False and stop engine"""
+        """set self.running to False and stop engine if it is running"""
+
         if self.running:
             self.running = False
             return f"stream {self.domain.name} stopped"
@@ -47,16 +52,14 @@ class Engine:
 
     @property
     def stream_status(self) -> dict:
-        """ return key properties of the engine instance """
-        status = {
-            'stream_name': self.domain.name,
-            'running': self.running
-        }
+        """return key properties of the engine instance"""
+
+        status = {"stream_name": self.domain.name, "running": self.running}
 
         return status
 
     def generate(self):
-        """ schedules and runs the loop for the collect_emit method """
+        """schedules and runs the loop for the collect_emit method"""
 
         while self.running == True:
             if self.limit_mode:
@@ -86,7 +89,6 @@ class Engine:
         """collects new event data from the passed domain instance and emits event"""
 
         event = self.domain.new_event()
-        # logging.info(f"engine called domain {event}")
         self.sio.emit("stream", data=event)
 
     def set_frequency(self, new_freq):

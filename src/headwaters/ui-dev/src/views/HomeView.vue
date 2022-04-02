@@ -1,5 +1,4 @@
 <template>
-  <div class="text-3xl font-bold underline m-10">hi</div>
   <div>
     <StreamCard />
   </div>

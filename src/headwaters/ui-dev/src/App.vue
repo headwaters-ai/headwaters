@@ -1,14 +1,17 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
-
+import { RouterLink, RouterView } from "vue-router";
 </script>
 
 <template>
   <header>
-    <div class="wrapper">
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
+    <div>
+      <nav class="flex flex-row">
+        <div class="m-2">
+          <RouterLink to="/">Home</RouterLink>
+        </div>
+        <div class="m-2">
+          <RouterLink to="/about">About</RouterLink>
+        </div>
       </nav>
     </div>
   </header>
