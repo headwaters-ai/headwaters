@@ -35,7 +35,6 @@ app = Flask("hw-server")
 CORS(app)
 sio = SocketIO(app)
 
-
 @app.get("/")
 def index():
     return jsonify(msg=f"says hello and {random.random()}")
@@ -122,16 +121,25 @@ def stream_status():
         )
 
 
-@app.get("/frequency")
+@app.patch("/freq")
 def command():
-    """this could be one route to test in operation param changes across the command_q"""
-    new_freq = random.randint(1, 6)
+    """PATCH that is sent the whole new required value for the freq of stream
 
-    # so the source of the stream can be idenfitief here with
-    # for stream in streams: if stream.source == xyz then do soemthing
-    stream = random.choice(streams)
-    stream.set_frequency(new_freq)
-    return jsonify(msg=f"adjusted stream {stream.name} freq to {new_freq}")
+    in milliseconds as an integer is 1,200 ms
+    """
+    if request.json:
+        data = request.json
+        stream_name = data["stream_name"]
+        new_freq = data["new_freq"]
+
+        if stream_name:
+            for stream in streams:
+                if stream.name == stream_name:
+                    stream.set_freq(new_freq)
+                    r = stream.stream_status
+                    return jsonify(r)
+    else:
+        return jsonify(msg=f"PATCH request must contain json payload data")
 
 
 @app.get("/burst")
@@ -177,11 +185,9 @@ def catch_all(path):
 
         return Response(r, mimetype="text/javascript")
 
-
     elif path.endswith(".css"):
         r = pkgutil.get_data("headwaters", f"{path}")
         logging.info(f"request on ui/ to {path}")
-
 
         return Response(r, mimetype="text/css")
 
