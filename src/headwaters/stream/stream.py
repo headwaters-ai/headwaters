@@ -36,7 +36,7 @@ class Stream:
         if not self.running:
             self.running = True
             self.limit_counter = 0
-            self.sio.start_background_task(self.generate)
+            self.sio.start_background_task(self.flow)
             logging.info(f"stream {self.name} started")
             return f"stream {self.name} started"
         else:
@@ -59,8 +59,8 @@ class Stream:
 
         return status
 
-    def generate(self):
-        """schedules and runs the loop for the collect_emit method"""
+    def flow(self):
+        """schedules and runs the loop that calls the collect_emit method"""
 
         while self.running == True:
             if self.limit_mode:

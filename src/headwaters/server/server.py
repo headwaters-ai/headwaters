@@ -205,7 +205,7 @@ def catch_all(path):
 
 @sio.event("connect")
 def connect_hndlr():
-    logging.info(f"sio conneciton rcvd {sio.sid}")
+    logging.info(f"sio connection rcvd {sio.sid}")
 
 
 streams = []
@@ -222,8 +222,7 @@ def run(selected_domains):
 
     stream_threads = []
     for stream in streams:
-        # sio.start_background_task(target=stream.generate)
-        stream_threads.append(threading.Thread(target=stream.generate))
+        stream_threads.append(threading.Thread(target=stream.flow))
 
     for stream_thread in stream_threads:
         stream_thread.start()
