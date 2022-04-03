@@ -14,13 +14,13 @@ logging.basicConfig(filename='hw.log', force=True, encoding='utf-8', level=loggi
 # hw -e fast -e slow etc...
 @click.command()
 @click.option(
-    "--domains",
-    "-d",
+    "--sources",
+    "-s",
     default=["fruits"],
     multiple=True,
-    help="specify the domain(s) for the server, with each domain preceded by a -d",
+    help="specify the sources(s) for the stream(s), with each source preceded by a -s",
 )
-def main(domains: str) -> None:
+def main(sources: str) -> None:
 
     logging.info('server started')
 
@@ -30,7 +30,7 @@ def main(domains: str) -> None:
     print(Fore.BLUE + Style.BRIGHT + "Headwaters:" + Style.NORMAL+ " Simple Stream Sources" + Style.RESET_ALL)
     time.sleep(0.3)
     print()
-    server.run(domains)
+    server.run(sources)
 
 if __name__ == "__main__":
     main()

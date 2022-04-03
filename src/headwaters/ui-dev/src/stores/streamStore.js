@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import requests from '../services/requests.js'
 
 export const useEngineStore = defineStore({
-  id: 'engine',
+  id: 'stream',
   state: () => ({
     stream: ''
   }),

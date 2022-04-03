@@ -1,19 +1,20 @@
 import logging
 import time
 
-# logging.basicConfig(filename='engine.log', level=logging.DEBUG)
+class Stream:
 
+    """blueprint for an Stream, which is passed a source class instance to call for data
+    
+    """
 
-class Engine:
+    def __init__(self, source, sio_app) -> None:
 
-    """blueprint for an engine, which is passed a domain class instance to call for data"""
-
-    def __init__(self, domain, sio_app) -> None:
-
-        if not isinstance(domain, int):
+        if not isinstance(source, int):
             pass
-        self.domain = domain
+        self.source = source
         self.sio = sio_app
+
+        self.name = self.source.name
 
         self.frequency = 1.0
         self.running = True
@@ -28,38 +29,38 @@ class Engine:
         self.burst_frequency = 0.2
 
     def start(self) -> str:
-        """set self.running to True and start engine if it is stopped
+        """set self.running to True and start stream if it is stopped
 
         guards against multiple starts
         """
         if not self.running:
             self.running = True
             self.limit_counter = 0
-            self.sio.start_background_task(self.generate)
-            logging.info(f"engine {self.domain.name} started")
-            return f"stream {self.domain.name} started"
+            self.sio.start_background_task(self.flow)
+            logging.info(f"stream {self.name} started")
+            return f"stream {self.name} started"
         else:
-            return f"stream {self.domain.name} already running"
+            return f"stream {self.name} already running"
 
     def stop(self):
-        """set self.running to False and stop engine if it is running"""
+        """set self.running to False and stop stream if it is running"""
 
         if self.running:
             self.running = False
-            return f"stream {self.domain.name} stopped"
+            return f"stream {self.name} stopped"
         else:
-            return f"stream {self.domain.name} already stopped"
+            return f"stream {self.name} already stopped"
 
     @property
     def stream_status(self) -> dict:
-        """return key properties of the engine instance"""
+        """return key properties of the stream instance"""
 
-        status = {"stream_name": self.domain.name, "running": self.running}
+        status = {"stream_name": self.name, "running": self.running}
 
         return status
 
-    def generate(self):
-        """schedules and runs the loop for the collect_emit method"""
+    def flow(self):
+        """schedules and runs the loop that calls the collect_emit method"""
 
         while self.running == True:
             if self.limit_mode:
@@ -86,10 +87,13 @@ class Engine:
                 time.sleep(self.frequency)
 
     def collect_emit(self):
-        """collects new event data from the passed domain instance and emits event"""
+        """collects new event data from the passed source instance and emits event
+        
+        the event name is set to the name of the source and stream ie 'fruits'
+        """
 
-        event = self.domain.new_event()
-        self.sio.emit("stream", data=event)
+        event = self.source.new_event()
+        self.sio.emit(self.name, data=event)
 
     def set_frequency(self, new_freq):
         """Setter for frequency"""
@@ -100,12 +104,12 @@ class Engine:
         self.burst_mode = True
 
     def set_error_mode_on(self):
-        """setter to set error mode for domain to on"""
-        self.domain.error_mode = True
+        """setter to set error mode for source to on"""
+        self.source.error_mode = True
 
     def set_error_mode_off(self):
-        """setter to set error mode for domain to off"""
-        self.domain.error_mode = False
+        """setter to set error mode for source to off"""
+        self.source.error_mode = False
 
     def burst(self):
         """trigger burst mode"""

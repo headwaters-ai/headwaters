@@ -1,6 +1,6 @@
 <script>
 import { mapStores } from "pinia";
-import { useEngineStore } from "../stores/engineStore.js";
+import { useEngineStore } from "../stores/streamStore.js";
 
 export default {
   data() {
@@ -11,18 +11,18 @@ export default {
   methods: {
     start() {
       console.log("start button pressed");
-      this.engineStore.startStream(this.streamName);
+      this.streamStore.startStream(this.streamName);
     },
     stop() {
       console.log("stop button pressed");
-      this.engineStore.stopStream(this.streamName);
+      this.streamStore.stopStream(this.streamName);
     },
   },
   computed: {
     ...mapStores(useEngineStore),
   },
   created() {
-    this.engineStore.getStreamStatus(this.streamName);
+    this.streamStore.getStreamStatus(this.streamName);
   },
 };
 </script>
@@ -46,8 +46,8 @@ export default {
   >
     <div class="flex flex-row justify-between">
       <div><b>stream:</b> {{ this.streamName }}</div>
-      <div v-if="this.engineStore.stream">
-        <b>running:</b> {{ this.engineStore.stream.running }}
+      <div v-if="this.streamStore.stream">
+        <b>running:</b> {{ this.streamStore.stream.running }}
       </div>
       <button
         class="
@@ -69,13 +69,13 @@ export default {
       >
         <div
           v-on:click="start()"
-          v-if="this.engineStore.stream.running === false"
+          v-if="this.streamStore.stream.running === false"
         >
           start
         </div>
         <div
           v-on:click="stop()"
-          v-if="this.engineStore.stream.running === true"
+          v-if="this.streamStore.stream.running === true"
         >
           stop
         </div>
