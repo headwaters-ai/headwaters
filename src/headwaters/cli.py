@@ -4,10 +4,10 @@ import click
 import logging
 import time
 
-logging.basicConfig(level=logging.ERROR)
 from colorama import Fore, Back, Style
 
 from . import server
+logging.basicConfig(filename='hw.log', force=True, encoding='utf-8', level=logging.DEBUG)
 
 # TODO need to be very clear in docs how to pass a list to the cli
 # i have forgotten right now and can't start multiple

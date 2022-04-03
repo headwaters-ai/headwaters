@@ -1,15 +1,7 @@
 import logging
 import time
 
-logging.basicConfig(level=logging.DEBUG)
-"""I think this will become an object that holds its state of things
-like frequency, and event scheme, which can be accessed and set
-
-This was overly complex with multi threads per worker, but each engine 
-will be simple to start, espcielly in this explore stage, so simplfiy and 
-take out second layer of threading.
-
-"""
+# logging.basicConfig(filename='engine.log', level=logging.DEBUG)
 
 
 class Engine:
@@ -21,11 +13,10 @@ class Engine:
         if not isinstance(domain, int):
             pass
         self.domain = domain
-        # print(type(self.domain))
         self.sio = sio_app
 
         self.frequency = 1.0
-        self.run = True
+        self.running = True
 
         self.limit_mode = False
         self.limit = 10
@@ -36,17 +27,41 @@ class Engine:
         self.burst_counter = 0
         self.burst_frequency = 0.2
 
-    def collect_emit(self):
-        """collects new event data from the passed domain instance and emits event"""
+    def start(self) -> str:
+        """set self.running to True and start engine if it is stopped
 
-        event = self.domain.new_event()
-        # logging.info(f"engine called domain {event}")
-        self.sio.emit("stream", data=event)
+        guards against multiple starts
+        """
+        if not self.running:
+            self.running = True
+            self.limit_counter = 0
+            self.sio.start_background_task(self.generate)
+            logging.info(f"engine {self.domain.name} started")
+            return f"stream {self.domain.name} started"
+        else:
+            return f"stream {self.domain.name} already running"
+
+    def stop(self):
+        """set self.running to False and stop engine if it is running"""
+
+        if self.running:
+            self.running = False
+            return f"stream {self.domain.name} stopped"
+        else:
+            return f"stream {self.domain.name} already stopped"
+
+    @property
+    def stream_status(self) -> dict:
+        """return key properties of the engine instance"""
+
+        status = {"stream_name": self.domain.name, "running": self.running}
+
+        return status
 
     def generate(self):
-        """generates new data and emits"""
+        """schedules and runs the loop for the collect_emit method"""
 
-        while self.run == True:
+        while self.running == True:
             if self.limit_mode:
                 if self.limit_counter < self.limit:
 
@@ -70,6 +85,12 @@ class Engine:
                 self.collect_emit()
                 time.sleep(self.frequency)
 
+    def collect_emit(self):
+        """collects new event data from the passed domain instance and emits event"""
+
+        event = self.domain.new_event()
+        self.sio.emit("stream", data=event)
+
     def set_frequency(self, new_freq):
         """Setter for frequency"""
         self.frequency = new_freq
@@ -86,15 +107,6 @@ class Engine:
         """setter to set error mode for domain to off"""
         self.domain.error_mode = False
 
-    def stop(self):
-        """set self.run to False and stop engine"""
-        self.run = False
-
-    def start(self):
-        """set self.run to True and start engine"""
-        self.run = True
-        self.limit_counter = 0
-        self.sio.start_background_task(self.generate)
-
     def burst(self):
         """trigger burst mode"""
+        pass

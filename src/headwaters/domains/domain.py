@@ -6,6 +6,7 @@ import logging
 from .fruits.model import data as fruits_data
 from .fruits.model import model as fruits_model
 
+
 class Domain:
 
     """
@@ -15,16 +16,17 @@ class Domain:
 
     this needs the getters and setter for data to be added
     """
+
     def __init__(self, domain):
         self.name = domain
-        if self.name == 'fruits':
+        if self.name == "fruits":
             self.model = fruits_model
         # logging.info(self.model)
-        
+
         self.data = fruits_data
         # logging.info(self.data)
 
-        self.new_data = [] # holding solution for the expanign choice issue
+        self.new_data = []  # holding solution for the expanign choice issue
 
         self.process_passed_data()
 
@@ -49,11 +51,11 @@ class Domain:
         """create a marshmallow schema from passed model looking for data def only
         only therefore applies to data that exists in the data files, so can exlude
         existing: False
-        
+
         """
         d = {}
         for k in self.model.keys():
-            if self.model[k]['stream']['existing']:
+            if self.model[k]["stream"]["existing"]:
                 d.update({k: self.model[k]["field"]})
 
         DataSchema = Schema.from_dict(d)
@@ -76,7 +78,7 @@ class Domain:
 
     def new_event(self):
         """Once loaded, shaped and validated against the model this method can then be safely called
-        
+
         the stream part of the model is defo going to need a schema validator: ie
         the actual generator types and setting needs a lot of work also
         if type == choice then default mut be list of len min 1 etc etc
@@ -94,22 +96,22 @@ class Domain:
                     try:
                         new_event[k] = random.choice(self.data)[k]
                     except KeyError:
-                        """ handles where an event field not in the original data is being picked from"""
+                        """handles where an event field not in the original data is being picked from"""
                         new_event[k] = random.choice(default)
                 if field["type"] == "increment":
                     try:
                         new_event[k] = self.new_data[-1][k] + 1
                     except:
-                        new_event[k] = default  
+                        new_event[k] = default
                 if field["type"] == "infer":
                     new_event[k] = "inference function called here"
-                
+
         self.new_data.append(new_event)
         return new_event
 
     def set_field(self, data):
-        """ setter to add a new field to running domain instance """
-        new_field = data['new_field']
-        self.model[new_field] = data['settings']
+        """setter to add a new field to running domain instance"""
+        new_field = data["new_field"]
+        self.model[new_field] = data["settings"]
 
         return "set_field complete"
