@@ -7,18 +7,17 @@ from .fruits.model import data as fruits_data
 from .fruits.model import model as fruits_model
 
 
-class Domain:
+class Source:
 
     """
-    This needs to be passed just a string indictaing the domain type,
+    This needs to be passed just a string indictaing the source type,
     and the instance needs to grab the data and model from the right place
-    using the pckg data
+    using the pckg data...
 
-    this needs the getters and setter for data to be added
     """
 
-    def __init__(self, domain):
-        self.name = domain
+    def __init__(self, source):
+        self.name = source
         if self.name == "fruits":
             self.model = fruits_model
         # logging.info(self.model)
@@ -110,7 +109,7 @@ class Domain:
         return new_event
 
     def set_field(self, data):
-        """setter to add a new field to running domain instance"""
+        """setter to add a new field to running source instance"""
         new_field = data["new_field"]
         self.model[new_field] = data["settings"]
 

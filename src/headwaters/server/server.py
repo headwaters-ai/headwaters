@@ -27,8 +27,8 @@ click.echo = echo
 click.secho = secho
 
 
-from ..engine import Engine
-from ..domains import Domain
+from ..stream import Stream
+from ..source import Source
 
 
 app = Flask("hw-server")
@@ -58,14 +58,14 @@ def start():
     stream_name = request.args.get("stream_name", None)
 
     if stream_name:
-        for engine in engines:
-            if engine.domain.name == stream_name:
-                engine.start()
-                r = engine.stream_status
+        for stream in streams:
+            if stream.name == stream_name:
+                stream.start()
+                r = stream.stream_status
                 logging.info(f"start route for {stream_name}, response: {r}")
                 return jsonify(r)
 
-        return jsonify(msg=f"stream engine {stream_name} has not been created")
+        return jsonify(msg=f"stream stream {stream_name} has not been created")
 
     else:
         return jsonify(
@@ -84,10 +84,10 @@ def stop():
     stream_name = request.args.get("stream_name", None)
 
     if stream_name:
-        for engine in engines:
-            if engine.domain.name == stream_name:
-                engine.stop()
-                r = engine.stream_status
+        for stream in streams:
+            if stream.name == stream_name:
+                stream.stop()
+                r = stream.stream_status
                 logging.info(f"stop route for {stream_name}, response: {r}")
                 return jsonify(r)
 
@@ -110,9 +110,9 @@ def stream_status():
     stream_name = request.args.get("stream_name", None)
 
     if stream_name:
-        for engine in engines:
-            if engine.domain.name == stream_name:
-                r = engine.stream_status
+        for stream in streams:
+            if stream.name == stream_name:
+                r = stream.stream_status
                 return jsonify(r)
 
         return jsonify(msg=f"stream {stream_name} has not been created")
@@ -127,29 +127,29 @@ def command():
     """this could be one route to test in operation param changes across the command_q"""
     new_freq = random.randint(1, 6)
 
-    # so the domain of the engine can be idenfitief here with
-    # for engine in engines: if engine.domain == xyz then do soemthing
-    engine = random.choice(engines)
-    engine.set_frequency(new_freq)
-    return jsonify(msg=f"adjusted engine {engine.domain.name} freq to {new_freq}")
+    # so the source of the stream can be idenfitief here with
+    # for stream in streams: if stream.source == xyz then do soemthing
+    stream = random.choice(streams)
+    stream.set_frequency(new_freq)
+    return jsonify(msg=f"adjusted stream {stream.name} freq to {new_freq}")
 
 
 @app.get("/burst")
 def burst():
-    engine = random.choice(engines)
-    engine.set_burst()
+    stream = random.choice(streams)
+    stream.set_burst()
 
     return jsonify(
-        msg=f"initiated burst for engine {engine.domain.name} with {engine.burst_limit}"
+        msg=f"initiated burst for stream {stream.name} with {stream.burst_limit}"
     )
 
 
 @app.get("/error_on")
 def error_on():
-    engine = random.choice(engines)
-    engine.set_error_mode_on()
+    stream = random.choice(streams)
+    stream.set_error_mode_on()
 
-    return jsonify(msg=f"error mode set for engine {engine.domain.name}")
+    return jsonify(msg=f"error mode set for stream {stream.name}")
 
 
 @app.post("/add_field")
@@ -157,12 +157,12 @@ def add_word():
 
     data = request.json
 
-    this_domain = data["domain"]
+    this_domain = data["source"]
 
     r = "huh"
-    for domain in domains:
-        if this_domain == domain.name:
-            r = domain.set_field(data)
+    for source in sources:
+        if this_domain == source.name:
+            r = source.set_field(data)
             break
 
     return jsonify(msg=r)
@@ -208,25 +208,25 @@ def connect_hndlr():
     logging.info(f"sio conneciton rcvd {sio.sid}")
 
 
-engines = []
-domains = []
+streams = []
+sources = []
 
 
 def run(selected_domains):
     """ """
 
     for selected_domain in selected_domains:
-        domain = Domain(selected_domain)
-        domains.append(domain)
-        engines.append(Engine(domain, sio))
+        source = Source(selected_domain)
+        sources.append(source)
+        streams.append(Stream(source, sio))
 
-    engine_threads = []
-    for engine in engines:
-        # sio.start_background_task(target=engine.generate)
-        engine_threads.append(threading.Thread(target=engine.generate))
+    stream_threads = []
+    for stream in streams:
+        # sio.start_background_task(target=stream.generate)
+        stream_threads.append(threading.Thread(target=stream.generate))
 
-    for engine_thread in engine_threads:
-        engine_thread.start()
+    for stream_thread in stream_threads:
+        stream_thread.start()
 
     port = 5555  # set up a config file
 
@@ -248,5 +248,5 @@ def run(selected_domains):
     print(f"Server stopping...")
     print()
 
-    for engine in engines:
-        engine.stop()
+    for stream in streams:
+        stream.stop()
