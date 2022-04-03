@@ -16,7 +16,7 @@ class Stream:
 
         self.name = self.source.name
 
-        self.frequency = 1.0
+        self.freq = 1_000
         self.running = True
 
         self.limit_mode = False
@@ -71,7 +71,7 @@ class Stream:
                 else:
                     self.stop()
 
-                time.sleep(self.frequency)
+                time.sleep(self.freq / 1_000)
 
             if self.burst_mode:
                 if self.burst_counter < self.burst_limit:
@@ -84,7 +84,7 @@ class Stream:
 
             else:
                 self.collect_emit()
-                time.sleep(self.frequency)
+                time.sleep(self.freq / 1_000)
 
     def collect_emit(self):
         """collects new event data from the passed source instance and emits event
@@ -95,9 +95,9 @@ class Stream:
         event = self.source.new_event()
         self.sio.emit(self.name, data=event)
 
-    def set_frequency(self, new_freq):
+    def set_freq(self, new_freq):
         """Setter for frequency"""
-        self.frequency = new_freq
+        self.freq = new_freq
 
     def set_burst(self):
         """setter to start a burst"""
