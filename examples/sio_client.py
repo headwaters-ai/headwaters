@@ -53,7 +53,7 @@ def unsubscribe(unsubs: list[str]) -> None:
         sio.emit("unsubscribe", data={"room": unsub})
 
 
-@sio.on("stream")
+@sio.on("fruits")
 def stream_handler(payload):
     logging.info(f"rcvd event {payload}")
 

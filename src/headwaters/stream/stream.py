@@ -87,10 +87,13 @@ class Stream:
                 time.sleep(self.frequency)
 
     def collect_emit(self):
-        """collects new event data from the passed source instance and emits event"""
+        """collects new event data from the passed source instance and emits event
+        
+        the event name is set to the name of the source and stream ie 'fruits'
+        """
 
         event = self.source.new_event()
-        self.sio.emit("stream", data=event)
+        self.sio.emit(self.name, data=event)
 
     def set_frequency(self, new_freq):
         """Setter for frequency"""
