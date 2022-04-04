@@ -1,6 +1,6 @@
 # headwaters
 
-Simple stream sources for client application development.
+Simple stream sources for event-driven application development.
 
 ### Install
 
