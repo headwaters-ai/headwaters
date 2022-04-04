@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import requests from '../services/requests.js'
 
-export const useEngineStore = defineStore({
+export const useStreamStore = defineStore({
   id: 'stream',
   state: () => ({
     stream: ''
@@ -10,13 +10,11 @@ export const useEngineStore = defineStore({
     getStreamStatus(streamName) {
       return requests.getStreamStatus(streamName)
         .then(response => {
-          console.log('stream status rcvd', response.data)
           this.stream = response.data
           console.log('stream state:', this.stream)
         })
         .catch(error => {
-          console.log("issue getting stream status", error)
-          throw error
+          console.log("issue getting stream status", error.response.data)
         })
     },
     startStream(streamName) {
@@ -25,8 +23,7 @@ export const useEngineStore = defineStore({
           this.stream = response.data
         })
         .catch(error => {
-          console.log("error issuing start command", error)
-          throw error
+          console.log("error issuing start command", error.response.data)
         })
     },
     stopStream(streamName) {
@@ -35,9 +32,21 @@ export const useEngineStore = defineStore({
           this.stream = response.data
         })
         .catch(error => {
-          console.log("error issuing stop command", error)
-          throw error
+          console.log("error issuing stop command", error.response.data)
         })
-    }
+    },
+    setStreamFreq(streamName, newFreq) {
+      if (this.stream.stream_freq >= 100) {
+        return requests.setStreamFreq(streamName, newFreq)
+          .then(response => {
+            this.stream = response.data
+          })
+          .catch(error => {
+            console.log("error setting stream freq", error.response.data)
+          })
+      } else {
+        console.log("minimum stream freq is 100ms")
+      }
+    } 
   }
 })

@@ -1,11 +1,10 @@
 import logging
 import time
 
+
 class Stream:
 
-    """blueprint for an Stream, which is passed a source class instance to call for data
-    
-    """
+    """blueprint for an Stream, which is passed a source class instance to call for data"""
 
     def __init__(self, source, sio_app) -> None:
 
@@ -16,7 +15,7 @@ class Stream:
 
         self.name = self.source.name
 
-        self.frequency = 1.0
+        self.freq = 1_000
         self.running = True
 
         self.limit_mode = False
@@ -55,7 +54,11 @@ class Stream:
     def stream_status(self) -> dict:
         """return key properties of the stream instance"""
 
-        status = {"stream_name": self.name, "running": self.running}
+        status = {
+            "stream_name": self.name,
+            "running": self.running,
+            "stream_freq": self.freq,
+        }
 
         return status
 
@@ -71,7 +74,7 @@ class Stream:
                 else:
                     self.stop()
 
-                time.sleep(self.frequency)
+                time.sleep(self.freq / 1_000)
 
             if self.burst_mode:
                 if self.burst_counter < self.burst_limit:
@@ -84,20 +87,26 @@ class Stream:
 
             else:
                 self.collect_emit()
-                time.sleep(self.frequency)
+                time.sleep(self.freq / 1_000)
 
     def collect_emit(self):
         """collects new event data from the passed source instance and emits event
-        
+
         the event name is set to the name of the source and stream ie 'fruits'
         """
 
         event = self.source.new_event()
         self.sio.emit(self.name, data=event)
 
-    def set_frequency(self, new_freq):
+    def set_freq(self, new_freq):
         """Setter for frequency"""
-        self.frequency = new_freq
+
+        if isinstance(new_freq, int) and new_freq >= 100:
+            self.freq = new_freq
+        else:
+            raise ValueError(
+                f"new_freq must be int gte 50ms, supplied value was {new_freq}"
+            )
 
     def set_burst(self):
         """setter to start a burst"""
