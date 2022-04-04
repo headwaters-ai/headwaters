@@ -1,11 +1,10 @@
 import logging
 import time
 
+
 class Stream:
 
-    """blueprint for an Stream, which is passed a source class instance to call for data
-    
-    """
+    """blueprint for an Stream, which is passed a source class instance to call for data"""
 
     def __init__(self, source, sio_app) -> None:
 
@@ -55,7 +54,11 @@ class Stream:
     def stream_status(self) -> dict:
         """return key properties of the stream instance"""
 
-        status = {"stream_name": self.name, "running": self.running}
+        status = {
+            "stream_name": self.name,
+            "running": self.running,
+            "stream_freq": self.freq,
+        }
 
         return status
 
@@ -88,7 +91,7 @@ class Stream:
 
     def collect_emit(self):
         """collects new event data from the passed source instance and emits event
-        
+
         the event name is set to the name of the source and stream ie 'fruits'
         """
 
@@ -97,7 +100,13 @@ class Stream:
 
     def set_freq(self, new_freq):
         """Setter for frequency"""
-        self.freq = new_freq
+
+        if isinstance(new_freq, int) and new_freq >= 100:
+            self.freq = new_freq
+        else:
+            raise ValueError(
+                f"new_freq must be int gte 50ms, supplied value was {new_freq}"
+            )
 
     def set_burst(self):
         """setter to start a burst"""

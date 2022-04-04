@@ -8,18 +8,30 @@ headwaters uses [semver](https://semver.org/) for versioning
 
 - **Added**
 
-    - support for adjusting the frequency of a stream
+    - support for adjusting the frequency of a stream [#8](https://github.com/headwaters-ai/headwaters/issues/8)
+    - burst mode
+    - error mode
 
 - **Changed**
 
+    - None
+
 - **Deprecated** 
 
+    - None
+    
 - **Removed**
 
+    - None
+    
 - **Fixed**
 
+    - None
+    
 - **Security**
 
+    - None
+    
 ## Previous versions:
 
 **v0.0.18** - Released 2022-04-03

@@ -1,6 +1,8 @@
 <script>
 import { mapStores } from "pinia";
-import { useEngineStore } from "../stores/streamStore.js";
+import { useStreamStore } from "../stores/streamStore.js";
+import StreamFreq from "../components/StreamFreq.vue";
+import StreamStartStop from "../components/StreamStartStop.vue";
 
 export default {
   data() {
@@ -8,21 +10,15 @@ export default {
       streamName: "fruits",
     };
   },
-  methods: {
-    start() {
-      console.log("start button pressed");
-      this.streamStore.startStream(this.streamName);
-    },
-    stop() {
-      console.log("stop button pressed");
-      this.streamStore.stopStream(this.streamName);
-    },
-  },
   computed: {
-    ...mapStores(useEngineStore),
+    ...mapStores(useStreamStore),
   },
   created() {
     this.streamStore.getStreamStatus(this.streamName);
+  },
+  components: {
+    StreamFreq,
+    StreamStartStop,
   },
 };
 </script>
@@ -49,38 +45,9 @@ export default {
       <div v-if="this.streamStore.stream">
         <b>running:</b> {{ this.streamStore.stream.running }}
       </div>
-      <button
-        class="
-          pt-1
-          pb-1
-          pl-2
-          pr-2
-          rounded-md
-          h-8
-          w-24
-          sm:w-12
-          ml-2
-          text-sm
-          transition
-          duration-75
-          ease-in-out
-          border border-gray-500
-        "
-      >
-        <div
-          v-on:click="start()"
-          v-if="this.streamStore.stream.running === false"
-        >
-          start
-        </div>
-        <div
-          v-on:click="stop()"
-          v-if="this.streamStore.stream.running === true"
-        >
-          stop
-        </div>
-      </button>
+      <StreamStartStop v-bind:streamName="this.streamName" />
     </div>
+    <StreamFreq v-bind:streamName="this.streamName" />
   </div>
 </template>
 

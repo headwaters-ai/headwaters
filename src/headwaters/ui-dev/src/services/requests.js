@@ -21,5 +21,11 @@ export default {
   },
   stopStream(streamName) {
     return apiClient.get("/stop", { params: { 'stream_name': streamName } });
+  },
+  setStreamFreq(streamName, newFreq) {
+    return apiClient.patch("/freq", {
+      'stream_name': streamName,
+      'new_freq': newFreq,
+    });
   }
 };

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request, Response, abort
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -35,6 +35,7 @@ app = Flask("hw-server")
 CORS(app)
 sio = SocketIO(app)
 
+
 @app.get("/")
 def index():
     return jsonify(msg=f"says hello and {random.random()}")
@@ -64,11 +65,17 @@ def start():
                 logging.info(f"start route for {stream_name}, response: {r}")
                 return jsonify(r)
 
-        return jsonify(msg=f"stream stream {stream_name} has not been created")
+        return (
+            jsonify(msg=f"perhaps stream stream {stream_name} has not been created"),
+            404,
+        )
 
     else:
-        return jsonify(
-            msg=f"please specify a stream name in url params using 'stream_name' = "
+        return (
+            jsonify(
+                msg=f"please specify a stream name in url params using 'stream_name' = "
+            ),
+            400,
         )
 
 
@@ -90,10 +97,13 @@ def stop():
                 logging.info(f"stop route for {stream_name}, response: {r}")
                 return jsonify(r)
 
-        return jsonify(msg=f"stream {stream_name} has not been created")
+        return jsonify(msg=f"seems like stream {stream_name} has not been created"), 404
     else:
-        return jsonify(
-            msg=f"please specify a stream name in url params using 'stream_name' = "
+        return (
+            jsonify(
+                msg=f"please specify a stream name in url params using 'stream_name' = "
+            ),
+            400,
         )
 
 
@@ -114,32 +124,62 @@ def stream_status():
                 r = stream.stream_status
                 return jsonify(r)
 
-        return jsonify(msg=f"stream {stream_name} has not been created")
+        return (
+            jsonify(msg=f"seems like stream {stream_name} has not been created...?"),
+            404,
+        )
     else:
-        return jsonify(
-            msg=f"please specify a stream name in url params using 'stream_name' = "
+        return (
+            jsonify(
+                msg=f"please specify a stream name in url params using 'stream_name' = "
+            ),
+            400,
         )
 
 
 @app.patch("/freq")
 def command():
-    """PATCH that is sent the whole new required value for the freq of stream
+    """PATCH that is sent the new required value for the freq of stream
 
-    in milliseconds as an integer is 1,200 ms
+    in milliseconds as an integer ie 1,200 ms
     """
     if request.json:
         data = request.json
         stream_name = data["stream_name"]
         new_freq = data["new_freq"]
 
-        if stream_name:
+        if stream_name and new_freq:
             for stream in streams:
                 if stream.name == stream_name:
-                    stream.set_freq(new_freq)
-                    r = stream.stream_status
-                    return jsonify(r)
+                    try:
+                        stream.set_freq(new_freq)
+                        r = stream.stream_status
+                        return jsonify(r)
+                    except ValueError:
+                        return (
+                            jsonify(
+                                msg=f"PATCH request to /freq must contain postive integer gte 100ms"
+                            ),
+                            400,
+                        )
+                else:
+                    logging.error(f"reuqested stream {stream_name} was not found in stream_list")
+                    return (
+                        jsonify(
+                            msg=f"seems like stream {stream_name} has not been created...?"
+                        ),
+                        404,
+                    )
+        else:
+            return (
+                jsonify(
+                    msg=f"PATCH request to /freq must contain stream_name and new_freq params in json payload"
+                ),
+                400,
+            )
+
     else:
-        return jsonify(msg=f"PATCH request must contain json payload data")
+        return jsonify(msg=f"PATCH request must contain json payload data"), 400
 
 
 @app.get("/burst")
