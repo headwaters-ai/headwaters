@@ -27,5 +27,22 @@ export default {
       'stream_name': streamName,
       'new_freq': newFreq,
     });
+  },
+  setBurstFreq(streamName, burstFreq) {
+    return apiClient.patch("/burst_freq", {
+      'stream_name': streamName,
+      'burst_freq': burstFreq,
+    });
+  },
+  setBurstVol(streamName, burstVol) {
+    return apiClient.patch("/burst_vol", {
+      'stream_name': streamName,
+      'burst_vol': burstVol,
+    });
+  },
+  startBurst(streamName) {
+    return apiClient.patch("/start_burst", {
+      'stream_name': streamName,
+    });
   }
 };

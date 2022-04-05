@@ -2,6 +2,10 @@
 import { mapStores } from "pinia";
 import { useStreamStore } from "../stores/streamStore.js";
 import StreamFreq from "../components/StreamFreq.vue";
+import BurstFreq from "../components/BurstFreq.vue";
+import BurstVol from "../components/BurstVol.vue";
+import StartBurstButton from "../components/StartBurstButton.vue";
+import FlashMsgBar from "../components/FlashMsgBar.vue";
 import StreamStartStop from "../components/StreamStartStop.vue";
 
 export default {
@@ -19,6 +23,10 @@ export default {
   components: {
     StreamFreq,
     StreamStartStop,
+    BurstFreq,
+    BurstVol,
+    StartBurstButton,
+    FlashMsgBar,
   },
 };
 </script>
@@ -34,7 +42,7 @@ export default {
       bg-gray-100
       border border-gray-300
       w-auto
-      h-20
+      h-auto
       rounded-md
       flex flex-col
       justify-center
@@ -43,11 +51,40 @@ export default {
     <div class="flex flex-row justify-between">
       <div><b>stream:</b> {{ this.streamName }}</div>
       <div v-if="this.streamStore.stream">
-        <b>running:</b> {{ this.streamStore.stream.running }}
+        <div v-if="this.streamStore.stream.running">
+          <div class="text-green-500 font-bold">running</div>
+        </div>
+        <div v-else>
+          <div class="text-orange-500 font-bold">not running</div>
+        </div>
       </div>
+
       <StreamStartStop v-bind:streamName="this.streamName" />
     </div>
-    <StreamFreq v-bind:streamName="this.streamName" />
+    <div class="flex flex-row m-1 items-center">
+      <span class="font-bold w-11">Freq:</span>
+      <StreamFreq v-bind:streamName="this.streamName" />
+    </div>
+    <div class="flex flex-row m-1 items-center">
+      <span class="font-bold w-11">Burst:</span>
+      <BurstFreq v-bind:streamName="this.streamName" />
+      <BurstVol v-bind:streamName="this.streamName" />
+      <StartBurstButton :streamName="this.streamName" />
+    </div>
+
+    <div class="absolute top-0 left-0 w-full">
+      <div
+        v-if="this.streamStore.messages"
+        class="flex flex-col items-start transition duration-500 ease-in-out"
+      >
+        <FlashMsgBar
+          v-for="message in this.streamStore.messages"
+          :key="message"
+          :message="message"
+          class="transition duration-500 ease-in-out"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
