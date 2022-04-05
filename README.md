@@ -22,7 +22,7 @@ To control the streams, view the docs, and access sample code, use the ui runnin
 
 Simple as that.
 
-*While headwaters is running* you can see and adjust the behviour of your streams:
+*While headwaters is running* you can see and adjust the behaviour of your stream:
 
 - start and stop the stream
 - adjust the frequency of the events emitted by the stream
