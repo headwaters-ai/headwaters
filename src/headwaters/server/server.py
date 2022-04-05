@@ -43,7 +43,7 @@ def index():
 
 @app.get("/ping")
 def ping():
-    logging.info(f"pong")
+
     return jsonify(pong=random.randint(1, 100))
 
 
@@ -55,28 +55,58 @@ def start():
     returns the stream_status so the client can retieve latest state
     """
 
-    stream_name = request.args.get("stream_name", None)
-
-    if stream_name:
-        for stream in streams:
-            if stream.name == stream_name:
-                stream.start()
-                r = stream.stream_status
-                logging.info(f"start route for {stream_name}, response: {r}")
-                return jsonify(r)
-
-        return (
-            jsonify(msg=f"perhaps stream stream {stream_name} has not been created"),
-            404,
-        )
-
+    # first, check the request has parameter arguments
+    if request.args:
+        # NB for request arg this is an ImmutableMultiDict from werkzeug, so can access using ['key'] format
+        # but it generates it's own error messages if a key is not found, this is useful in general, but complicates
+        # things in this case, so we convert to regular dictionary, so this keeps code handling args 
+        # keys similar to handling json keys
+        data = dict(request.args)
     else:
         return (
-            jsonify(
-                msg=f"please specify a stream name in url params using 'stream_name' = "
-            ),
+            jsonify(msg=f"RequestError: request must contain url arguments (probably missing 'stream_name')"),
             400,
         )
+
+    try:
+        stream_name = data["stream_name"]
+        if not stream_name:
+            raise ValueError("'stream_name' must not be empty")
+
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
+
+    # check that the value of stream_name is of type 'str'
+    if not isinstance(stream_name, str):
+        return jsonify(
+            msg=f"TypeError: stream name (stream_name) must be an integer; supplied value was of type {type(stream_name)}"
+        )
+
+
+    for stream in streams:
+        if stream.name == stream_name:
+            try:
+                stream.start()
+                r = stream.stream_status
+                return jsonify(r)
+            except ValueError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+
+    return (
+        jsonify(msg=f"ValueError: seems like stream '{stream_name}' has not been created...?"),
+        404,
+    )
 
 
 @app.get("/stop")
@@ -87,24 +117,58 @@ def stop():
     returns the stream_status so the client can retieve latest state
     """
 
-    stream_name = request.args.get("stream_name", None)
-
-    if stream_name:
-        for stream in streams:
-            if stream.name == stream_name:
-                stream.stop()
-                r = stream.stream_status
-                logging.info(f"stop route for {stream_name}, response: {r}")
-                return jsonify(r)
-
-        return jsonify(msg=f"seems like stream {stream_name} has not been created"), 404
+    # first, check the request has parameter arguments
+    if request.args:
+        # NB for request arg this is an ImmutableMultiDict from werkzeug, so can access using ['key'] format
+        # but it generates it's own error messages if a key is not found, this is useful in general, but complicates
+        # things in this case, so we convert to regular dictionary, so this keeps code handling args 
+        # keys similar to handling json keys
+        data = dict(request.args)
     else:
         return (
-            jsonify(
-                msg=f"please specify a stream name in url params using 'stream_name' = "
-            ),
+            jsonify(msg=f"RequestError: request must contain url arguments (probably missing 'stream_name')"),
             400,
         )
+
+    try:
+        stream_name = data["stream_name"]
+        if not stream_name:
+            raise ValueError("'stream_name' must not be empty")
+
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
+
+    # check that the value of stream_name is of type 'str'
+    if not isinstance(stream_name, str):
+        return jsonify(
+            msg=f"TypeError: stream name (stream_name) must be an integer; supplied value was of type {type(stream_name)}"
+        )
+
+
+    for stream in streams:
+        if stream.name == stream_name:
+            try:
+                stream.stop()
+                r = stream.stream_status
+                return jsonify(r)
+            except ValueError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+
+    return (
+        jsonify(msg=f"ValueError: seems like stream '{stream_name}' has not been created...?"),
+        404,
+    )
 
 
 @app.get("/stream_status")
@@ -113,83 +177,325 @@ def stream_status():
 
     uses the stream_status @property (not a method to call)
 
-    returns the stream_status so the client can retieve latest state
+    returns relevant properties of a Stream instance so the client can retieve latest state
     """
-
-    stream_name = request.args.get("stream_name", None)
-
-    if stream_name:
-        for stream in streams:
-            if stream.name == stream_name:
-                r = stream.stream_status
-                return jsonify(r)
-
-        return (
-            jsonify(msg=f"seems like stream {stream_name} has not been created...?"),
-            404,
-        )
+    # first, check the request has parameter arguments
+    if request.args:
+        # NB for request arg this is an ImmutableMultiDict from werkzeug, so can access using ['key'] format
+        # this keeps code handling args similar to handling json
+        data = dict(request.args)
     else:
         return (
-            jsonify(
-                msg=f"please specify a stream name in url params using 'stream_name' = "
-            ),
+            jsonify(msg=f"RequestError: request must contain url arguments (probably missing 'stream_name')"),
             400,
         )
 
+    try:
+        stream_name = data["stream_name"]
+        if not stream_name:
+            raise ValueError("'stream_name' must not be empty")
+
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
+
+    # check that the value of stream_name is of type 'str'
+    if not isinstance(stream_name, str):
+        return jsonify(
+            msg=f"TypeError: stream name (stream_name) must be an integer; supplied value was of type {type(stream_name)}"
+        )
+
+
+    for stream in streams:
+        if stream.name == stream_name:
+            try:
+                r = stream.stream_status
+                return jsonify(r)
+
+            # handle an error which as of writing is of unknown type...
+            except Exception as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+
+    return (
+        jsonify(msg=f"ValueError: seems like stream '{stream_name}' has not been created...?"),
+        404,
+    )
+
+
 
 @app.patch("/freq")
-def command():
-    """PATCH that is sent the new required value for the freq of stream
+def freq():
+    """PATCH that is sent the new required value for the freq of stream new_freq
+    and use the stream.set_freq(new_freq) setter
 
     in milliseconds as an integer ie 1,200 ms
     """
+    # first, check the request has a json data payload
     if request.json:
         data = request.json
-        stream_name = data["stream_name"]
-        new_freq = data["new_freq"]
+    else:
+        return (
+            jsonify(msg=f"RequestError: request must contain a json payload"),
+            400,
+        )
 
-        if stream_name and new_freq:
-            for stream in streams:
-                if stream.name == stream_name:
-                    try:
-                        stream.set_freq(new_freq)
-                        r = stream.stream_status
-                        return jsonify(r)
-                    except ValueError:
-                        return (
-                            jsonify(
-                                msg=f"PATCH request to /freq must contain postive integer gte 100ms"
-                            ),
-                            400,
-                        )
-                else:
-                    logging.error(f"reuqested stream {stream_name} was not found in stream_list")
-                    return (
-                        jsonify(
-                            msg=f"seems like stream {stream_name} has not been created...?"
-                        ),
-                        404,
-                    )
+    # then, check all keys are present and have a value
+    try:
+        stream_name = data["stream_name"]
+        if not stream_name:
+            raise ValueError("'stream_name' must not be empty")
+
+        new_freq = data["new_freq"]
+        if not new_freq:
+            raise ValueError("'new_freq' must not be zero")
+
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
+
+    # check that the value of stream_name is of type 'str'
+    # NB Stream class instances handle type checking for their own properties and methods
+    if not isinstance(stream_name, str):
+        return jsonify(
+            msg=f"TypeError: stream name (stream_name) must be an integer; supplied value was of type {type(stream_name)}"
+        )
+
+    for stream in streams:
+        if stream.name == stream_name:
+            try:
+                stream.set_freq(new_freq)
+                r = stream.stream_status
+                return jsonify(r)
+            except ValueError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+            except TypeError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
         else:
             return (
                 jsonify(
-                    msg=f"PATCH request to /freq must contain stream_name and new_freq params in json payload"
+                    msg=f"ValueError: seems like stream '{stream_name}' has not been created...?"
                 ),
-                400,
+                404,
             )
 
+
+@app.patch("/start_burst")
+def start_burst():
+    """trigger a burst by setting the stream.burst_mode to True via
+    calling the stream.start_burst() setter method
+
+    """
+    # first, check the request has a json data payload
+    if request.json:
+        data = request.json
     else:
-        return jsonify(msg=f"PATCH request must contain json payload data"), 400
+        return (
+            jsonify(msg=f"RequestError: request must contain a json payload"),
+            400,
+        )
+
+    # then, check all keys are present and have a value
+    try:
+        stream_name = data["stream_name"]
+        if not stream_name:
+            raise ValueError("'stream_name' must not be empty")
+
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
+
+    # check that the value of stream_name is of type 'str'
+    # NB Stream class instances handle type checking for their own properties and methods
+    if not isinstance(stream_name, str):
+        return jsonify(
+            msg=f"TypeError: stream name (stream_name) must be an integer; supplied value was of type {type(stream_name)}"
+        )
+
+    for stream in streams:
+        if stream.name == stream_name:
+            try:
+                stream.start_burst()
+                r = stream.stream_status
+                return jsonify(r)
+            except ValueError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+            except TypeError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+        else:
+            return (
+                jsonify(
+                    msg=f"ValueError: seems like stream '{stream_name}' has not been created...?"
+                ),
+                404,
+            )
 
 
-@app.get("/burst")
-def burst():
-    stream = random.choice(streams)
-    stream.set_burst()
+@app.patch("/burst_freq")
+def burst_freq():
+    """set the burst frequency by calling stream.set_burst_freq method"""
 
-    return jsonify(
-        msg=f"initiated burst for stream {stream.name} with {stream.burst_limit}"
-    )
+    # first, check the request has a json data payload
+    if request.json:
+        data = request.json
+    else:
+        return (
+            jsonify(msg=f"RequestError: request must contain a json payload"),
+            400,
+        )
+
+    # then, check all keys are present and have a value
+    try:
+        stream_name = data["stream_name"]
+        if not stream_name:
+            raise ValueError("'stream_name' must not be empty")
+
+        burst_freq = data["burst_freq"]
+        if not burst_freq:
+            raise ValueError("'burst_freq' must not be zero")
+
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
+
+    # check that the value of stream_name is of type 'str'
+    # NB Stream class instances handle type checking for their own properties and methods
+    if not isinstance(stream_name, str):
+        return jsonify(
+            msg=f"TypeError: stream name (stream_name) must be an integer; supplied value was of type {type(stream_name)}"
+        )
+
+    for stream in streams:
+        if stream.name == stream_name:
+            try:
+                stream.set_burst_freq(burst_freq)
+                r = stream.stream_status
+                return jsonify(r)
+            except ValueError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+            except TypeError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+        else:
+            return (
+                jsonify(
+                    msg=f"ValueError: seems like stream '{stream_name}' has not been created...?"
+                ),
+                404,
+            )
+
+
+@app.patch("/burst_vol")
+def burst_vol():
+    """set the burst volume by calling stream.set_burst_vol method"""
+
+    # first, check the request has a json data payload
+    if request.json:
+        data = request.json
+    else:
+        return (
+            jsonify(msg=f"RequestError: request must contain a json payload"),
+            400,
+        )
+
+    # then, check all keys are present and have a value
+    try:
+        stream_name = data["stream_name"]
+        if not stream_name:
+            raise ValueError("'stream_name' must not be empty")
+
+        burst_vol = data["burst_vol"]
+        if not burst_vol:
+            raise ValueError("'burst_vol' must not be zero")
+
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
+
+    # check that the value of stream_name is of type 'str'
+    # NB Stream class instances handle type checking for their own properties and methods
+    if not isinstance(stream_name, str):
+        return jsonify(
+            msg=f"TypeError: stream name (stream_name) must be an integer; supplied value was of type {type(stream_name)}"
+        )
+
+    for stream in streams:
+        if stream.name == stream_name:
+            try:
+                stream.set_burst_vol(burst_vol)
+                r = stream.stream_status
+                return jsonify(r)
+            except ValueError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+            except TypeError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+        else:
+            return (
+                jsonify(
+                    msg=f"ValueError: seems like stream '{stream_name}' has not been created...?"
+                ),
+                404,
+            )
 
 
 @app.get("/error_on")
@@ -290,8 +596,14 @@ def run(selected_domains):
     sio.run(app, debug=False, port=port)
 
     print()
-    print(f"Server stopping...")
-    print()
+    print(Fore.RED + Style.BRIGHT + f"Stopping streams..." + Style.RESET_ALL)
 
     for stream in streams:
-        stream.stop()
+        try:
+            stream.stop()
+            print(Fore.RED + f"   stopped stream '{stream.name}'" + Style.RESET_ALL)
+        except ValueError as e:
+            print(Fore.RED + f"   stream '{stream.name}' already stopped" + Style.RESET_ALL)
+    
+    print()
+

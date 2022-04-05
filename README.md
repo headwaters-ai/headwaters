@@ -21,3 +21,9 @@ Streams can be connected to at the server: http://127.0.0.1:5555
 To control the streams, view the docs, and access sample code, use the ui running at http://127.0.0.1:5555/ui
 
 Simple as that.
+
+*While headwaters is running* you can see and adjust the behviour of your streams:
+
+- start and stop the stream
+- adjust the frequency of the events emitted by the stream
+- trigger a burst mode to send a flurry of events, with configurable frequency and volume

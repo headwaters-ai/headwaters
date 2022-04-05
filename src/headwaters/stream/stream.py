@@ -1,4 +1,5 @@
 import logging
+from multiprocessing.sharedctypes import Value
 import time
 
 
@@ -16,6 +17,7 @@ class Stream:
         self.name = self.source.name
 
         self.freq = 1_000
+        self.freq_min = 100
         self.running = True
 
         self.limit_mode = False
@@ -23,9 +25,11 @@ class Stream:
         self.limit_counter = 0
 
         self.burst_mode = False
-        self.burst_limit = 30
+        self.burst_vol = 100
+        self.burst_vol_min = 1
         self.burst_counter = 0
-        self.burst_frequency = 0.2
+        self.burst_freq = 100
+        self.burst_freq_min = 50
 
     def start(self) -> str:
         """set self.running to True and start stream if it is stopped
@@ -36,19 +40,22 @@ class Stream:
             self.running = True
             self.limit_counter = 0
             self.sio.start_background_task(self.flow)
-            logging.info(f"stream {self.name} started")
-            return f"stream {self.name} started"
         else:
-            return f"stream {self.name} already running"
+            raise ValueError(f"stream {self.name} already running")
 
     def stop(self):
-        """set self.running to False and stop stream if it is running"""
+        """set self.running to False and stop stream if it is running
+        
+        includes stopping the burst mode
+        """
 
         if self.running:
             self.running = False
-            return f"stream {self.name} stopped"
+            # stop burst mode too, and need to rest counter too
+            self.burst_mode = False
+            self.burst_counter = 0
         else:
-            return f"stream {self.name} already stopped"
+            raise ValueError(f"stream {self.name} already stopped")
 
     @property
     def stream_status(self) -> dict:
@@ -58,6 +65,9 @@ class Stream:
             "stream_name": self.name,
             "running": self.running,
             "stream_freq": self.freq,
+            "burst_mode_active": self.burst_mode,
+            "burst_freq": self.burst_freq,
+            "burst_vol": self.burst_vol
         }
 
         return status
@@ -77,13 +87,14 @@ class Stream:
                 time.sleep(self.freq / 1_000)
 
             if self.burst_mode:
-                if self.burst_counter < self.burst_limit:
+                if self.burst_counter <= self.burst_vol:
                     self.collect_emit()
                     self.burst_counter += 1
                 else:
                     self.burst_mode = False
                     self.burst_counter = 0
-                time.sleep(self.burst_frequency)
+
+                time.sleep(self.burst_freq / 1_000)
 
             else:
                 self.collect_emit()
@@ -101,16 +112,48 @@ class Stream:
     def set_freq(self, new_freq):
         """Setter for frequency"""
 
-        if isinstance(new_freq, int) and new_freq >= 100:
+        if isinstance(new_freq, int) and new_freq >= self.freq_min:
             self.freq = new_freq
         else:
             raise ValueError(
-                f"new_freq must be int gte 50ms, supplied value was {new_freq}"
+                f"new stream frequency (new_freq) must be int gte {self.freq_min}ms, supplied value was {new_freq}"
             )
 
-    def set_burst(self):
-        """setter to start a burst"""
-        self.burst_mode = True
+    def start_burst(self):
+        """start a burst
+
+        guard against double burst checking mode is false before
+        """
+        if not self.burst_mode:
+            self.burst_mode = True
+        else:
+            raise ValueError(f"burst mode is already active")
+
+    def set_burst_freq(self, burst_freq):
+        """setter to adjust burst freqency"""
+
+        if not isinstance(burst_freq, int):
+            raise TypeError(f'TypeError: burst frequency (burst_freq) must be an integer; supplied type was {type(burst_freq)}')
+        
+        if burst_freq >= self.burst_freq_min:
+            self.burst_freq = burst_freq
+        else:
+            raise ValueError(
+                f"ValueError: burst freq (burst_freq) must be gte {self.burst_freq_min}; supplied value was {burst_freq}"
+            )
+
+    def set_burst_vol(self, burst_vol):
+        """setter to adjust burst volume"""
+        
+        if not isinstance(burst_vol, int):
+            raise TypeError(f'TypeError: burst volume (burst_vol) must be an integer; supplied type was {type(burst_vol)}')
+        
+        if burst_vol >= self.burst_vol_min:
+            self.burst_vol = burst_vol
+        else:
+            raise ValueError(
+                f"ValueError: burst volume (burst_vol) must be gte {self.burst_vol_min}; supplied value was {burst_vol}"
+            )
 
     def set_error_mode_on(self):
         """setter to set error mode for source to on"""

@@ -4,7 +4,8 @@ import requests from '../services/requests.js'
 export const useStreamStore = defineStore({
   id: 'stream',
   state: () => ({
-    stream: ''
+    stream: '',
+    messages: []
   }),
   actions: {
     getStreamStatus(streamName) {
@@ -14,6 +15,8 @@ export const useStreamStore = defineStore({
           console.log('stream state:', this.stream)
         })
         .catch(error => {
+          this.messages.push(error.response.data.msg)
+          setTimeout(() => this.messages.shift(), 5000)
           console.log("issue getting stream status", error.response.data)
         })
     },
@@ -23,6 +26,9 @@ export const useStreamStore = defineStore({
           this.stream = response.data
         })
         .catch(error => {
+          this.getStreamStatus(streamName)
+          this.messages.push(error.response.data.msg)
+          setTimeout(() => this.messages.shift(), 5000)
           console.log("error issuing start command", error.response.data)
         })
     },
@@ -32,21 +38,55 @@ export const useStreamStore = defineStore({
           this.stream = response.data
         })
         .catch(error => {
+          this.getStreamStatus(streamName)
+          this.messages.push(error.response.data.msg)
+          setTimeout(() => this.messages.shift(), 5000)
           console.log("error issuing stop command", error.response.data)
         })
     },
     setStreamFreq(streamName, newFreq) {
-      if (this.stream.stream_freq >= 100) {
-        return requests.setStreamFreq(streamName, newFreq)
-          .then(response => {
-            this.stream = response.data
-          })
-          .catch(error => {
-            console.log("error setting stream freq", error.response.data)
-          })
-      } else {
-        console.log("minimum stream freq is 100ms")
-      }
-    } 
+      return requests.setStreamFreq(streamName, newFreq)
+        .then(response => {
+          this.stream = response.data
+        })
+        .catch(error => {
+          this.messages.push(error.response.data.msg)
+          setTimeout(() => this.messages.shift(), 5000)
+          console.log("error setting stream frequency", error.response.data)
+        })
+    },
+    setBurstFreq(streamName, burstFreq) {
+      return requests.setBurstFreq(streamName, burstFreq)
+        .then(response => {
+          this.stream = response.data
+        })
+        .catch(error => {
+          this.messages.push(error.response.data.msg)
+          setTimeout(() => this.messages.shift(), 5000)
+          console.log("error setting burst frequency", error.response.data)
+        })
+    },
+    setBurstVol(streamName, burstVol) {
+      return requests.setBurstVol(streamName, burstVol)
+        .then(response => {
+          this.stream = response.data
+        })
+        .catch(error => {
+          this.messages.push('the burst volume setting cannot be lower than that')
+          setTimeout(() => this.messages.shift(), 5000)
+          console.log("error setting burst volume", error.response.data)
+        })
+    },
+    startBurst(streamName) {
+      return requests.startBurst(streamName)
+        .then(response => {
+          this.stream = response.data
+        })
+        .catch(error => {
+          this.messages.push(error.response.data.msg)
+          setTimeout(() => this.messages.shift(), 5000)
+          console.log("error starting burst", error.response.data)
+        })
+    }
   }
 })
