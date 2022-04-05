@@ -1,0 +1,7 @@
+[
+    {"fruit": "apple", "item": 1, "sku": 9999},
+    {"fruit": "banana", "item": 2, "sku": 9999},
+    {"fruit": "cherry", "item": 3, "sku": 9999},
+    {"fruit": "damson", "item": 4, "sku": 9999},
+    {"fruit": "elderberry", "item": 5, "sku": 9999}
+]

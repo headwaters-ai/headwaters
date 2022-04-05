@@ -162,7 +162,3 @@ class Stream:
     def set_error_mode_off(self):
         """setter to set error mode for source to off"""
         self.source.error_mode = False
-
-    def burst(self):
-        """trigger burst mode"""
-        pass

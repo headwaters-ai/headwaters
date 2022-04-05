@@ -22,13 +22,8 @@ logging.basicConfig(filename='hw.log', force=True, encoding='utf-8', level=loggi
 )
 def main(sources: str) -> None:
 
-    logging.info('server started')
-
-    
     print()
-    time.sleep(0.2)
-    print(Fore.BLUE + Style.BRIGHT + "Headwaters:" + Style.NORMAL+ " Simple Stream Sources" + Style.RESET_ALL)
-    time.sleep(0.3)
+    print(Style.BRIGHT  + "Headwaters:" + Style.NORMAL+ " Simple Stream Sources" + Style.RESET_ALL)
     print()
     server.run(sources)
 

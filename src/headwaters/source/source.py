@@ -1,116 +1,102 @@
 import pandas as pd
 import random
-from marshmallow import Schema, ValidationError
+import pkgutil
+import json
 import logging
 
-from .fruits.model import data as fruits_data
-from .fruits.model import model as fruits_model
+from .source_schemas import fruits
 
 
 class Source:
 
     """
     This needs to be passed just a string indictaing the source type,
-    and the instance needs to grab the data and model from the right place
+    and the instance needs to grab the data and schema from the right place
     using the pckg data...
 
     """
 
-    def __init__(self, source):
-        self.name = source
+    def __init__(self, source_name):
+
+        if not isinstance(source_name, str):
+            raise ValueError(
+                f"ValueError: 'source_name' parameter must be a string, passed type was {type(source_name)}"
+            )
+
+        supported_models = [
+            "fruits",
+        ]
+
+        if source_name not in supported_models:
+            raise ValueError(
+                f"ValueError: passed 'source_name' of {source_name} is not supported"
+            )
+
+        self.name = source_name
+
         if self.name == "fruits":
-            self.model = fruits_model
-        # logging.info(self.model)
+            self.schema = fruits.schema
+            self.data_file = fruits.data_file
 
-        self.data = fruits_data
-        # logging.info(self.data)
+        self.created_data = []  # holding solution for the expanign choice issue
 
-        self.new_data = []  # holding solution for the expanign choice issue
+        self.load_data()
 
-        self.process_passed_data()
+    def load_data(self):
+        """use pandas as core data wrangler mediator type thing.
 
-        if not self.validate_data():
-            raise ValueError(f"model to data validation error")
+        right now, the data file is in a nice json dict shape, but pandas is here to help with any data file
+        in the futrue: csv, sql etc etc
 
-    def process_passed_data(self):
-        """use pandas to comvert any passed data shape to a nice shape"""
+
+        """
+
+        # this key list section finds the keys from the model that are expected to be in the
+        # data_file for this source and that the schema WANTS TO STREAM
+        # if the key/field is present in the data_file but not in the key_list, it won't make it to pandas
+        # and so won't be streamed
         key_list = []
 
-        for k in self.model.keys():
-            if self.model[k]["stream"]["existing"]:
+        for k in self.schema.keys():
+            if self.schema[k]["existing"]:
                 key_list.append(k)
 
-        columns = key_list
+        initial_data = pkgutil.get_data(
+            "headwaters", f"/source/source_data/{self.data_file}"
+        )
+        if self.data_file.endswith(".json"):
+            initial_data = json.loads(initial_data)
 
-        df = pd.DataFrame(data=self.data, columns=columns)
+        print(initial_data)
 
-        self.data = df.to_dict(orient="records")
+        df = pd.DataFrame(data=initial_data, columns=key_list)
+        print(df)
 
-    def create_data_schema(self):
-        """create a marshmallow schema from passed model looking for data def only
-        only therefore applies to data that exists in the data files, so can exlude
-        existing: False
-
-        """
-        d = {}
-        for k in self.model.keys():
-            if self.model[k]["stream"]["existing"]:
-                d.update({k: self.model[k]["field"]})
-
-        DataSchema = Schema.from_dict(d)
-        return DataSchema
-
-    def validate_data(self):
-        """
-        use create marshmallow instance to validate passed data
-        """
-
-        DataSchema = self.create_data_schema()
-
-        try:
-
-            DataSchema(many=True).load(self.data)
-            return True
-        except ValidationError as e:
-            logging.info(e)
-            return False
+        self.initial_data = df.to_dict(orient="records")
 
     def new_event(self):
-        """Once loaded, shaped and validated against the model this method can then be safely called
-
-        the stream part of the model is defo going to need a schema validator: ie
-        the actual generator types and setting needs a lot of work also
-        if type == choice then default mut be list of len min 1 etc etc
-        if exsiting == True, then must have field definition
-        """
+        """create a new event based on instructions in the schema"""
 
         new_event = {}
 
-        for k in self.model.keys():
+        for k in self.schema.keys():
 
-            field = self.model[k]["stream"]
-            default = self.model[k]["stream"]["default"]
-            if field["include"]:
-                if field["type"] == "choice":
-                    try:
-                        new_event[k] = random.choice(self.data)[k]
-                    except KeyError:
-                        """handles where an event field not in the original data is being picked from"""
-                        new_event[k] = random.choice(default)
-                if field["type"] == "increment":
-                    try:
-                        new_event[k] = self.new_data[-1][k] + 1
-                    except:
-                        new_event[k] = default
-                if field["type"] == "infer":
-                    new_event[k] = "inference function called here"
+            field = self.schema[k]
+            default = self.schema[k]["default"]
 
-        self.new_data.append(new_event)
+            # this is a random choice from the inital_data
+            if field["type"] == "choice":
+                try:
+                    new_event[k] = random.choice(self.initial_data)[k]
+                except KeyError:
+                    """handles where an event field not in the original data is being picked from"""
+                    new_event[k] = random.choice(default)
+
+            if field["type"] == "increment":
+                try:
+                    new_event[k] = self.created_data[-1][k] + 1
+                except:
+                    new_event[k] = default
+
+        self.created_data.append(new_event)
         return new_event
-
-    def set_field(self, data):
-        """setter to add a new field to running source instance"""
-        new_field = data["new_field"]
-        self.model[new_field] = data["settings"]
-
-        return "set_field complete"

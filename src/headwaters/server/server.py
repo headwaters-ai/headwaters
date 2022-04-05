@@ -564,11 +564,11 @@ streams = []
 sources = []
 
 
-def run(selected_domains):
+def run(selected_sources):
     """ """
 
-    for selected_domain in selected_domains:
-        source = Source(selected_domain)
+    for selected_source in selected_sources:
+        source = Source(selected_source)
         sources.append(source)
         streams.append(Stream(source, sio))
 
@@ -591,7 +591,7 @@ def run(selected_domains):
         Fore.CYAN + Style.BRIGHT + f"UI: http://127.0.0.1:{port}/ui" + Style.RESET_ALL
     )
     print()
-    print(Fore.RED + Style.DIM + "(CTRL-C to stop)" + Style.RESET_ALL)
+    print( Style.DIM + "(CTRL-C to stop)" + Style.RESET_ALL)
 
     sio.run(app, debug=False, port=port)
 
