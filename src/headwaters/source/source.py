@@ -4,7 +4,7 @@ import pkgutil
 import json
 import logging
 
-from .source_schemas import fruits
+# from .source_schemas import fruits
 
 
 class Source:
@@ -33,70 +33,60 @@ class Source:
             )
 
         self.name = source_name
+        # self.created_data = []  # holding solution for the expanign choice issue
 
-        if self.name == "fruits":
-            self.schema = fruits.schema
-            self.data_file = fruits.data_file
+        self.get_schema()
+        self.get_data()
 
-        self.created_data = []  # holding solution for the expanign choice issue
+    def get_schema(self):
+        """use pkgutil to resolve and load the schema for the passed source_name
 
-        self.load_data()
-
-    def load_data(self):
-        """use pandas as core data wrangler mediator type thing.
-
-        right now, the data file is in a nice json dict shape, but pandas is here to help with any data file
-        in the futrue: csv, sql etc etc
-
-
+        expects a json config file at the mo'
         """
+        try:
+            initial_schema = pkgutil.get_data(
+                "headwaters", f"/source/source_schemas/{self.name}.json"
+            )
+            print(initial_schema)
+        except:
+            raise
 
-        # this key list section finds the keys from the model that are expected to be in the
-        # data_file for this source and that the schema WANTS TO STREAM
-        # if the key/field is present in the data_file but not in the key_list, it won't make it to pandas
-        # and so won't be streamed
-        key_list = []
+        initial_schema = json.loads(initial_schema)
 
-        for k in self.schema.keys():
-            if self.schema[k]["existing"]:
-                key_list.append(k)
+        self.schema = initial_schema["schema"]
+        self.data_file = initial_schema["data_file"]["path"]
+
+    def get_data(self):
+        """grab data from json file, simple
+
+        right now, the data file is in a nice json dict shape, but pandas could be used to help with any data file
+        in the futrue: csv, sql etc etc
+        """
 
         initial_data = pkgutil.get_data(
             "headwaters", f"/source/source_data/{self.data_file}"
         )
         if self.data_file.endswith(".json"):
-            initial_data = json.loads(initial_data)
+            self.initial_data = json.loads(initial_data)
 
-        print(initial_data)
-
-        df = pd.DataFrame(data=initial_data, columns=key_list)
-        print(df)
-
-        self.initial_data = df.to_dict(orient="records")
+        print(self.initial_data)
 
     def new_event(self):
         """create a new event based on instructions in the schema"""
 
         new_event = {}
 
-        for k in self.schema.keys():
+        for k, v in self.schema.items():
+            if v["type"] == "choice":
+                if v['choice_from'] == "data_file":
+                    # the update method maps all the keys of the data file to the new_event dict
+                    # rather that nesting in a new_event[k] operation
+                    new_event.update(random.choice(self.initial_data))
 
-            field = self.schema[k]
-            default = self.schema[k]["default"]
+            if v["type"] == "random_int":
+                new_event[k] = random.randint(v["rand_min"], v["rand_max"])
 
-            # this is a random choice from the inital_data
-            if field["type"] == "choice":
-                try:
-                    new_event[k] = random.choice(self.initial_data)[k]
-                except KeyError:
-                    """handles where an event field not in the original data is being picked from"""
-                    new_event[k] = random.choice(default)
 
-            if field["type"] == "increment":
-                try:
-                    new_event[k] = self.created_data[-1][k] + 1
-                except:
-                    new_event[k] = default
+            # random_float, rnad_address, rand_name, rand_age, etc from faker
 
-        self.created_data.append(new_event)
         return new_event

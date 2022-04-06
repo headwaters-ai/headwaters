@@ -568,7 +568,12 @@ def run(selected_sources):
     """ """
 
     for selected_source in selected_sources:
-        source = Source(selected_source)
+        try:
+            source = Source(selected_source)
+        except FileNotFoundError:
+            print(Fore.YELLOW + f"   source name '{selected_source}' not resolved in schema lookup" + Style.RESET_ALL)
+            print()
+            continue
         sources.append(source)
         streams.append(Stream(source, sio))
 

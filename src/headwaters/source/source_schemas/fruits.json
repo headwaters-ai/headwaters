@@ -1,0 +1,17 @@
+{
+    "data_file": {
+        "path": "fruits_data.json"
+    },
+    "base_freq": 60000,
+    "schema": {
+        "item": {
+            "type": "choice",
+            "choice_from": "data_file"
+        },
+        "volume_sold": {
+            "type": "random_int", 
+            "rand_min": 1,
+            "rand_max": 10
+        }
+    }
+}
