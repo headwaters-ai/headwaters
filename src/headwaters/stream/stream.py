@@ -107,6 +107,7 @@ class Stream:
         """
 
         event = self.source.new_event()
+        event.update({"event_id": time.time()})
         self.sio.emit(self.name, data=event)
 
     def set_freq(self, new_freq):

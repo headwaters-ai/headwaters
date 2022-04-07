@@ -10,7 +10,7 @@ import logging
 class Source:
 
     """
-    This needs to be passed just a string indictaing the source type,
+    This needs to be passed just a string indictaing the source method,
     and the instance needs to grab the data and schema from the right place
     using the pckg data...
 
@@ -20,11 +20,11 @@ class Source:
 
         if not isinstance(source_name, str):
             raise ValueError(
-                f"ValueError: 'source_name' parameter must be a string, passed type was {type(source_name)}"
+                f"ValueError: 'source_name' parameter must be a string, passed method was {type(source_name)}"
             )
 
         supported_models = [
-            "fruits",
+            "fruit_sales",
         ]
 
         if source_name not in supported_models:
@@ -33,10 +33,8 @@ class Source:
             )
 
         self.name = source_name
-        # self.created_data = []  # holding solution for the expanign choice issue
 
         self.get_schema()
-        self.get_data()
 
     def get_schema(self):
         """use pkgutil to resolve and load the schema for the passed source_name
@@ -45,48 +43,70 @@ class Source:
         """
         try:
             initial_schema = pkgutil.get_data(
-                "headwaters", f"/source/source_schemas/{self.name}.json"
+                "headwaters", f"/source/schemas/{self.name}.json"
             )
-            print(initial_schema)
         except:
             raise
 
         initial_schema = json.loads(initial_schema)
 
         self.schema = initial_schema["schema"]
-        self.data_file = initial_schema["data_file"]["path"]
-
-    def get_data(self):
-        """grab data from json file, simple
-
-        right now, the data file is in a nice json dict shape, but pandas could be used to help with any data file
-        in the futrue: csv, sql etc etc
-        """
-
-        initial_data = pkgutil.get_data(
-            "headwaters", f"/source/source_data/{self.data_file}"
-        )
-        if self.data_file.endswith(".json"):
-            self.initial_data = json.loads(initial_data)
-
-        print(self.initial_data)
-
+        self.data = initial_schema["data"]
+   
     def new_event(self):
         """create a new event based on instructions in the schema"""
 
         new_event = {}
 
         for k, v in self.schema.items():
-            if v["type"] == "choice":
-                if v['choice_from'] == "data_file":
-                    # the update method maps all the keys of the data file to the new_event dict
-                    # rather that nesting in a new_event[k] operation
-                    new_event.update(random.choice(self.initial_data))
+            if k == "_select_from":
+                for sk, sv in v.items():
+                    if sv["method"] == "rand_choice":
+                        
+                        new_event_data = []
+                        _selected_data = []
 
-            if v["type"] == "random_int":
-                new_event[k] = random.randint(v["rand_min"], v["rand_max"])
+                        if sv["select_quantity"] == "one":
+                            _selected_data.append(random.choice(self.data[sk]))
+                        elif sv["select_quantity"] == "many":
+                            for _ in range(random.randint(2,10)):
+                                _selected_data.append(random.choice(self.data[sk]))
+
+                        if sv["choose_keys"]:
+                            chosen_keys = sv["choose_keys"]
+                            for s in _selected_data:
+                                new_event_data.append({nk: nv for nk, nv in s.items() if nk in chosen_keys})
+                        else:
+                            for s in _selected_data:
+                                new_event_data.append(s)  
+                                    
+                        if sv["select_quantity"] == "one":
+                            if sv["spread_keys"]:
+                                new_event.update(new_event_data[0])
+                            else:
+                                new_event[sk] = new_event_data[0]
+                        elif sv["select_quantity"] == "many":
+                            if sv["spread_keys"]:
+                                for x in new_event_data:
+                                    new_event.update(x)
+                            else:
+                                new_event.update({sk: new_event_data})
+                continue
+    
+            if v["method"] == "rand_int":
+                new_int = random.randint(v["rand_min"], v["rand_max"])
+                if v["insert_to"]:
+                    for destination in v["insert_to"]:
+                        if not self.schema["_select_from"][destination]["spread_keys"]:
+                            for line in new_event[destination]:
+                                line.update({k:new_int})
+                        else:
+                            print("handle error here")
+                else:
+                    new_event[k] = new_int
 
 
-            # random_float, rnad_address, rand_name, rand_age, etc from faker
+            # random_float, rnad_address, rand_name, rand_age, rand_bool, incr_from_prev, decr_from_prev
+            # etc from faker or generated
 
         return new_event

@@ -8,6 +8,8 @@ Especially:
 """
 import socketio
 import logging
+from pprint import pprint
+import json
 logging.basicConfig(level=logging.INFO)
 
 
@@ -53,9 +55,9 @@ def unsubscribe(unsubs: list[str]) -> None:
         sio.emit("unsubscribe", data={"room": unsub})
 
 
-@sio.on("fruits")
+@sio.on("fruit_sales")
 def stream_handler(payload):
-    logging.info(f"rcvd event {payload}")
+    print(json.dumps(payload, indent=4))
 
 
 @sio.on("connect")
