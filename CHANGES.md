@@ -10,7 +10,6 @@ headwaters uses [semver](https://semver.org/) for versioning
 
     - adjust the frequency of a stream during stream flow [#8](https://github.com/headwaters-ai/headwaters/issues/8)
     - set burst frequency, volume and trigger burst mode [#9](https://github.com/headwaters-ai/headwaters/issues/9)
-    - error mode
 
 - **Changed**
 

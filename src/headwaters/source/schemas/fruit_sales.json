@@ -1,6 +1,6 @@
 {
     "data": {
-        "product": [
+        "products": [
             {
                 "item_name": "apples",
                 "item_price": 3.99,
@@ -27,7 +27,7 @@
                 "sku": 56789
             }
         ],
-        "customer": [
+        "customers": [
             {
                 "customer_id": 98765,
                 "cust_name": "Ben"
@@ -35,32 +35,69 @@
             {
                 "customer_id": 87654,
                 "cust_name": "Becky"
+            },
+            {
+                "customer_id": 76543,
+                "cust_name": "Grace"
+            },
+            {
+                "customer_id": 65432,
+                "cust_name": "Harris"
+            }
+        ],
+        "shops": [
+            {
+                "shop_id": 1,
+                "address": "1 High Street",
+                "has_fridges": true
+            },
+            {
+                "shop_id": 2,
+                "address": "506 St John's Road",
+                "has_fridges": true
+            },
+            {
+                "shop_id": 3,
+                "address": "19 Achison Drive",
+                "has_fridges": false
             }
         ]
     },
     "base_freq": 60000,
     "schema": {
         "_select_from": {
-            "product": {
-                "method": "rand_choice",
+            "products": {
+                "select_method": "rand_choice",
                 "select_quantity": "many",
                 "choose_keys": [],
-                "spread_keys": false
+                "flatten": false
             },
-            "customer": {
-                "method": "rand_choice",
-                "select_quantity": "one",
+            "customers": {
+                "select_method": "rand_choice",
+                "select_quantity": 1,
                 "choose_keys": [],
-                "spread_keys": false
+                "flatten": true
+            },
+            "shops": {
+                "select_method": "rand_choice",
+                "select_quantity": 1,
+                "choose_keys": [],
+                "flatten": false
             }
         },
         "volume_sold": {
-            "method": "rand_int",
-            "insert_to": [
-                "product"
+            "create_method": "rand_int",
+            "insert_into": [
+                "products"
             ],
             "rand_min": 1,
             "rand_max": 10
+        },
+        "timestamp": {
+            "create_method": "rand_int",
+            "insert_into": [],
+            "rand_min": 10000000,
+            "rand_max": 12345000
         }
     }
 }
