@@ -1,3 +1,4 @@
+from hashlib import new
 from textwrap import indent
 import pandas as pd
 import random
@@ -199,6 +200,52 @@ class Source:
         new_event.update({"event_id": str(uuid.uuid4())})
 
         # print("new_event = ", json.dumps(new_event, indent=4))
+
+        # error mode support:
+        
+        # a new_event looks like this:
+        # {
+        #     "products": [
+        #         {
+        #             "item_name": "cherries",
+        #             "item_price": 3.5,
+        #             "sku": 34567,
+        #             "volume_sold": 7
+        #         },
+        #         {
+        #             "item_name": "damsons",
+        #             "item_price": 1.2,
+        #             "sku": 45678,
+        #             "volume_sold": 1
+        #         },
+        #         {
+        #             "item_name": "cherries",
+        #             "item_price": 3.5,
+        #             "sku": 34567,
+        #             "volume_sold": 7
+        #         },
+        #         {
+        #             "item_name": "cherries",
+        #             "item_price": 3.5,
+        #             "sku": 34567,
+        #             "volume_sold": 7
+        #         }
+        #     ],
+        #     "shops": [
+        #         {
+        #             "shop_id": 2,
+        #             "address": "506 St John's Road",
+        #             "has_fridges": true
+        #         }
+        #     ],
+        #     "timestamp": 12200790,
+        #     "customer_id": 98765,
+        #     "cust_name": "Ben",
+        #     "event_id": "a6570e34-0933-4c7f-9a6d-aaa413dc8a10"
+        # }
+
+        # next plan is to inject value errors when values are selected or created
+        # and to then creat, remove or mash-up keys on the new_event after new_event is made fully
 
         return new_event
             # random_float, rnad_address, rand_name, rand_age, rand_bool, incr_from_prev, decr_from_prev

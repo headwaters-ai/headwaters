@@ -70,19 +70,25 @@
                 "select_method": "rand_choice",
                 "select_quantity": "many",
                 "choose_keys": [],
-                "flatten": false
+                "flatten": false,
+                "errors": []
             },
             "customers": {
                 "select_method": "rand_choice",
                 "select_quantity": 1,
                 "choose_keys": [],
-                "flatten": true
+                "flatten": true,
+                "errors": [
+                    "value_type",
+                    "key_missing"
+                ]
             },
             "shops": {
                 "select_method": "rand_choice",
                 "select_quantity": 1,
                 "choose_keys": [],
-                "flatten": false
+                "flatten": false,
+                "errors": []
             }
         },
         "volume_sold": {
@@ -91,13 +97,15 @@
                 "products"
             ],
             "rand_min": 1,
-            "rand_max": 10
+            "rand_max": 10,
+            "errors": []
         },
         "timestamp": {
             "create_method": "rand_int",
             "insert_into": [],
             "rand_min": 10000000,
-            "rand_max": 12345000
+            "rand_max": 12345000,
+            "errors": []
         }
     }
 }
