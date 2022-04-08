@@ -1,0 +1,27 @@
+[
+    {
+        "item_name": "apple",
+        "item_price": 3.99,
+        "sku": 12345
+    },
+    {
+        "item_name": "banana",
+        "item_price": 1.99,
+        "sku": 23456
+    },
+    {
+        "item_name": "cherry",
+        "item_price": 3.50,
+        "sku": 34567
+    },
+    {
+        "item_name": "damson",
+        "item_price": 1.20,
+        "sku": 45678
+    },
+    {
+        "item_name": "elderberry",
+        "item_price": 5.00,
+        "sku": 56789
+    }
+]

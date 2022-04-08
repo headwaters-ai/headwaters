@@ -1,0 +1,103 @@
+{
+    "data": {
+        "products": [
+            {
+                "item_name": "apples",
+                "item_price": 3.99,
+                "sku": 12345
+            },
+            {
+                "item_name": "bananas",
+                "item_price": 1.99,
+                "sku": 23456
+            },
+            {
+                "item_name": "cherries",
+                "item_price": 3.50,
+                "sku": 34567
+            },
+            {
+                "item_name": "damsons",
+                "item_price": 1.20,
+                "sku": 45678
+            },
+            {
+                "item_name": "elderberries",
+                "item_price": 5.00,
+                "sku": 56789
+            }
+        ],
+        "customers": [
+            {
+                "customer_id": 98765,
+                "cust_name": "Ben"
+            },
+            {
+                "customer_id": 87654,
+                "cust_name": "Becky"
+            },
+            {
+                "customer_id": 76543,
+                "cust_name": "Grace"
+            },
+            {
+                "customer_id": 65432,
+                "cust_name": "Harris"
+            }
+        ],
+        "shops": [
+            {
+                "shop_id": 1,
+                "address": "1 High Street",
+                "has_fridges": true
+            },
+            {
+                "shop_id": 2,
+                "address": "506 St John's Road",
+                "has_fridges": true
+            },
+            {
+                "shop_id": 3,
+                "address": "19 Achison Drive",
+                "has_fridges": false
+            }
+        ]
+    },
+    "base_freq": 60000,
+    "schema": {
+        "_select_from": {
+            "products": {
+                "select_method": "rand_choice",
+                "select_quantity": "many",
+                "choose_keys": [],
+                "flatten": false
+            },
+            "customers": {
+                "select_method": "rand_choice",
+                "select_quantity": 1,
+                "choose_keys": [],
+                "flatten": true
+            },
+            "shops": {
+                "select_method": "rand_choice",
+                "select_quantity": 1,
+                "choose_keys": [],
+                "flatten": false
+            }
+        },
+        "volume_sold": {
+            "create_method": "rand_int",
+            "insert_into": [
+                "products"
+            ],
+            "rand_min": 1,
+            "rand_max": 10
+        },
+        "timestamp": {
+            "create_method": "rand_int",
+            "insert_into": [],
+            "rand_min": 10000000,
+            "rand_max": 12345000
+        }
+    }
+}

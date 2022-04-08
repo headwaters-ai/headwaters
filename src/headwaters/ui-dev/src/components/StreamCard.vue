@@ -11,7 +11,7 @@ import StreamStartStop from "../components/StreamStartStop.vue";
 export default {
   data() {
     return {
-      streamName: "fruits",
+      streamName: "fruit_sales",
     };
   },
   computed: {
