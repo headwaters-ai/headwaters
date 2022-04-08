@@ -18,12 +18,14 @@ The CLI output shows the location of the server and ui.
 
 Streams can be connected to at the server: http://127.0.0.1:5555
 
-To control the streams, view the docs, and access sample code, use the ui running at http://127.0.0.1:5555/ui
+To control the streams, use the ui running at http://127.0.0.1:5555/ui
 
 Simple as that.
 
-*While headwaters is running* you can see and adjust the behviour of your streams:
+*While headwaters is running* you can see and adjust the behaviour of your streams:
 
-- start and stop the stream
-- adjust the frequency of the events emitted by the stream
-- trigger a burst mode to send a flurry of events, with configurable frequency and volume
+- start and stop the stream;
+- adjust the frequency of the events emitted by the stream;
+- trigger a burst mode to send a flurry of events, with configurable frequency and volume.
+
+:)

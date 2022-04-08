@@ -51,7 +51,7 @@ class Source:
 
         self.schema = initial_schema["schema"]
         self.data = initial_schema["data"]
-        print(json.dumps(self.schema, indent=4))
+        # print(json.dumps(self.schema, indent=4))
    
     def new_event(self):
         """create a new event based on instructions in the schema"""
