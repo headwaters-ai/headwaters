@@ -8,12 +8,12 @@ headwaters uses [semver](https://semver.org/) for versioning
 
 - **Added**
 
-    - adjust the frequency of a stream during stream flow [#8](https://github.com/headwaters-ai/headwaters/issues/8) [commit](https://github.com/headwaters-ai/headwaters/commit/a14225da06612d77cd0763b46e9a8f22bde59a97)
-    - set burst frequency, volume and trigger burst mode [#9](https://github.com/headwaters-ai/headwaters/issues/9) [commit](https://github.com/headwaters-ai/headwaters/commit/2d76403ce9c003fc8a7bac08a1ef124fd02c1717)
+    - adjust the frequency of a stream during stream flow [#8](https://github.com/headwaters-ai/headwaters/issues/8) [commit](https://github.com/headwaters-ai/headwaters/commit/a14225da06612d77cd0763b46e9a8f22bde59a97);
+    - set burst frequency, volume and trigger burst mode [#9](https://github.com/headwaters-ai/headwaters/issues/9) [commit](https://github.com/headwaters-ai/headwaters/commit/2d76403ce9c003fc8a7bac08a1ef124fd02c1717);
 
 - **Changed**
 
-    - jumped version numbering to broadly follow semver
+    - jumped version numbering to broadly follow semver;
 
 - **Deprecated** 
 
