@@ -4,7 +4,7 @@ headwaters uses [semver](https://semver.org/) for versioning
 
 ## Latest version:
 
-**v0.0.19** - Released 2022-04-08
+**v0.19.1** - Released 2022-04-08
 
 - **Added**
 
