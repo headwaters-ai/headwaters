@@ -245,7 +245,8 @@ class Source:
         # }
 
         # next plan is to inject value errors when values are selected or created
-        # and to then creat, remove or mash-up keys on the new_event after new_event is made fully
+        
+        # and to then create, remove or mash-up keys on the new_event after new_event is made fully
 
         return new_event
             # random_float, rnad_address, rand_name, rand_age, rand_bool, incr_from_prev, decr_from_prev
