@@ -7,6 +7,7 @@ import json
 import uuid
 import logging
 
+
 class Source:
 
     """
@@ -17,6 +18,7 @@ class Source:
     """
 
     def __init__(self, source_name):
+        """run some basic checks agsint type and value of passed source_name"""
 
         if not isinstance(source_name, str):
             raise ValueError(
@@ -34,6 +36,7 @@ class Source:
 
         self.name = source_name
 
+        # once checks pass, go and grab the relevant data
         self.get_schema()
 
     def get_schema(self):
@@ -41,19 +44,22 @@ class Source:
 
         expects a json config file at the mo'
         """
+
         try:
             initial_schema = pkgutil.get_data(
                 "headwaters", f"/source/schemas/{self.name}.json"
             )
         except:
+
+            # just bubbling the error up right now, this will need to change
             raise
 
         initial_schema = json.loads(initial_schema)
 
         self.schema = initial_schema["schema"]
         self.data = initial_schema["data"]
-        # print(json.dumps(self.schema, indent=4))
-   
+        self.errors = initial_schema["errors"]
+
     def new_event(self):
         """create a new event based on instructions in the schema"""
 
@@ -66,9 +72,10 @@ class Source:
                 for data_name, settings in v.items():
 
                     # start with:
-                    _selected_list = [] # choise from data goes here
+                    _selected_list = []  # choise from data goes here
                     # replaced by:
-                    _filtered_selected_list = [] # chosen keys placed here
+                    _filtered_selected_list = []  # chosen keys placed here
+                    # which is then assigned to new_event as the value of the key 'data_name'
 
                     if settings["select_method"] == "rand_choice":
 
@@ -76,10 +83,16 @@ class Source:
 
                         # in the case of an int
                         if isinstance(settings["select_quantity"], int):
-                            # loop through the data that number of times 
+                            # loop through the data that number of times
                             # for that data_name
                             for _ in range(settings["select_quantity"]):
-                                _selected_list.append(random.choice(self.data[data_name]))
+
+                                # this is the main guts of the selection of existing
+
+
+                                _selected_list.append(
+                                    random.choice(self.data[data_name])
+                                )
 
                         # in the case of the 'many' string:
                         if settings["select_quantity"] == "many":
@@ -88,17 +101,86 @@ class Source:
                             range_max = len(self.data[data_name])
 
                             for _ in range(random.randint(1, range_max)):
-                                _selected_list.append(random.choice(self.data[data_name]))
-                    
+                                _selected_list.append(
+                                    random.choice(self.data[data_name])
+                                )
+
                     # print(f"{_selected_list = }")
                     
+                    # ERROR MODE ZONE
+
+                    # _selecte d_list is avaibal ehere pre key selection
+                    # for now assuming single depth dicts in the list, this is a MAJOR
+                    # assumption and needs to be solved with some simple recursive finder funcs
+
+                    # i know which area of schema we are in here becuase we are behing the 
+                    # "_select_from" if guard
+
+                    # is the error_mode of value_errors active?
+                    if "value_errors" in self.errors['modes']:
+                    # if so, get value_errors from settings
+                        value_errors = self.schema[k][data_name]["value_errors"]
+
+                        # check if there are value_errors sspecified:
+                        # only make amednments to values if there are value_errors to apply
+                        if value_errors:
+                            # go through every line dict in the selection
+                            # as we know MAJOR ASSUMPTION HERE
+
+                            #create a new error list to passing back to _selectedlist
+                            _selected_list_with_errors = []
+
+                            for _item in _selected_list:
+                                # the first approach is to apply a value_error to a random key in EACH
+                                # item of the selected list
+                                # there may be more approaches in the future
+
+                                # so, select a random key from the dict
+                                random_key = random.choice(list(_item.keys()))
+                            
+                                if "type" in value_errors:
+                                    # apply type error to the random key
+
+                                    type_dict = {
+                                        str: 'string error, £ ?',
+                                        int: 42,
+                                        float: 1.9876542,
+                                        bool: True
+                                    }
+                                    # get type of current value
+                                    value_current_type = type(_item[random_key])
+                                    # remove it from the selection of errors to pick from
+                                    type_dict.pop(value_current_type)
+                                    print(value_current_type, ": ")
+                                    print(type_dict)
+                                    print()
+                                    
+                                    _item[random_key] = type_dict[random.choice(list(type_dict.keys()))]
+
+                                _selected_list_with_errors.append(_item)
+
+
+                                if "range" in value_errors:
+                                    pass
+                                    # print(f"this is on the range")
+                                # will need a way to handle erroor types here
+                                # could use list of 'value_error_styles' in schema
+                            
+                            # reassign so flow can continue
+                            _selected_list = _selected_list_with_errors
+
                     if settings["choose_keys"]:
 
                         chosen_keys = settings["choose_keys"]
                         for s in _selected_list:
-                            _filtered_selected_list.append({nk: nv for nk, nv in s.items() if nk in chosen_keys})
+
+                            # could actually generate keys errors here?
+                            _filtered_selected_list.append(
+                                {nk: nv for nk, nv in s.items() if nk in chosen_keys}
+                            )
                     else:
                         _filtered_selected_list = _selected_list
+
 
                     # print(f"{_filtered_selected_list = }")
 
@@ -109,7 +191,7 @@ class Source:
 
                     # then append this speciffc dict for the data_name into the main new_event dict
                     new_event.update(_this_data_name_dict)
-            
+
             # this is the main creation section
             # where the _select_from key has not been hit, so every other key will hit this
             # will be processed in this section
@@ -118,37 +200,41 @@ class Source:
                 # so can use the v["accessor"] to access the settings, rename for clarity
                 data_name = k
                 settings = v
-                
-                if settings["create_method"] == "rand_int": # it will be for now
-                    
+
+                if settings["create_method"] == "rand_int":  # it will be for now
+
                     if settings["insert_into"]:
                         # let's guard just to check the new_event has been created
                         if new_event:
                             # now, here we are going to have a list of one or more target
                             # keys/fields we want to insert into.
                             # let's get those:
-                            insert_destinations = settings["insert_into"] # it's a list
+                            insert_destinations = settings["insert_into"]  # it's a list
 
                             # lets loop thought the list and pull out each insert destination
                             for insert_destination in insert_destinations:
 
-                                # the insert destination in the new_event data has 
+                                # the insert destination in the new_event data has
                                 # one or more lines in it
                                 # within the new_event
                                 # every one of these lines is a dict
                                 for line_dict in new_event[insert_destination]:
                                     # this line_dict is what we will want to add the new_int into
                                     # create the new_int
-                                    new_int = random.randint(settings["rand_min"], settings["rand_max"])
+                                    new_int = random.randint(
+                                        settings["rand_min"], settings["rand_max"]
+                                    )
                                     _this_data_name_dict = {data_name: new_int}
                                     # update the line_dict
                                     line_dict.update(_this_data_name_dict)
 
                     else:
-                        # this is the straght up, create a new int once and 
+                        # this is the straght up, create a new int once and
                         # add it with its data_name
                         # to the new_event
-                        new_int = random.randint(settings["rand_min"], settings["rand_max"])
+                        new_int = random.randint(
+                            settings["rand_min"], settings["rand_max"]
+                        )
                         _this_data_name_dict = {data_name: new_int}
 
                         new_event.update(_this_data_name_dict)
@@ -157,7 +243,7 @@ class Source:
         # this is when any flattening can happen to shape the final new_event
         # flatten is a bool
 
-        #let's get every key in the _select_from part of the config file into a list
+        # let's get every key in the _select_from part of the config file into a list
         data_names = list(self.schema["_select_from"].keys())
 
         # check if the data_name has a true flatten param
@@ -189,12 +275,10 @@ class Source:
                     # do nothing..
                     # or should i raise an error to advise??
                     pass
-                
+
             else:
                 # we just do nothing
                 pass
-
-
 
         # add a cheeky wee uuid for fun
         new_event.update({"event_id": str(uuid.uuid4())})
@@ -202,7 +286,7 @@ class Source:
         # print("new_event = ", json.dumps(new_event, indent=4))
 
         # error mode support:
-        
+
         # a new_event looks like this:
         # {
         #     "products": [
@@ -245,9 +329,9 @@ class Source:
         # }
 
         # next plan is to inject value errors when values are selected or created
-        
+
         # and to then create, remove or mash-up keys on the new_event after new_event is made fully
 
         return new_event
-            # random_float, rnad_address, rand_name, rand_age, rand_bool, incr_from_prev, decr_from_prev
-            # etc from faker or generated
+        # random_float, rnad_address, rand_name, rand_age, rand_bool, incr_from_prev, decr_from_prev
+        # etc from faker or generated
