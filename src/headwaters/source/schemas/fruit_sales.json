@@ -29,19 +29,19 @@
         ],
         "customers": [
             {
-                "customer_id": 98765,
+                "cust_id": 98765,
                 "cust_name": "Ben"
             },
             {
-                "customer_id": 87654,
+                "cust_id": 87654,
                 "cust_name": "Becky"
             },
             {
-                "customer_id": 76543,
+                "cust_id": 76543,
                 "cust_name": "Grace"
             },
             {
-                "customer_id": 65432,
+                "cust_id": 65432,
                 "cust_name": "Harris"
             }
         ],
@@ -88,9 +88,14 @@
             "products": {
                 "select_method": "rand_choice",
                 "select_quantity": "many",
-                "choose_keys": [],
+                "choose_keys": [
+                    "item_price",
+                    "sku"
+                ],
                 "flatten": false,
-                "value_errors": []
+                "value_errors": [
+                    "type"
+                ]
             },
             "customers": {
                 "select_method": "rand_choice",
@@ -98,32 +103,34 @@
                 "choose_keys": [],
                 "flatten": true,
                 "value_errors": [
-                    "type",
-                    "range"
+                    "type"
                 ]
             },
             "shops": {
                 "select_method": "rand_choice",
-                "select_quantity": 1,
+                "select_quantity": 2,
                 "choose_keys": [],
                 "flatten": false,
-                "value_errors": []
+                "value_errors": [
+                    "type"
+                ]
             }
         },
         "volume_sold": {
-            "create_method": "rand_int",
+            "create_method": "rand",
+            "create_type": "int",
             "insert_into": [
                 "products"
             ],
-            "rand_min": 1,
-            "rand_max": 10,
+            "int_min": 1,
             "value_errors": []
         },
         "timestamp": {
-            "create_method": "rand_int",
+            "create_method": "rand",
+            "create_type": "int",
             "insert_into": [],
-            "rand_min": 10000000,
-            "rand_max": 12345000,
+            "int_min": -10000000,
+            "in_max": 12345000,
             "value_errors": []
         }
     }
