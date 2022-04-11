@@ -84,41 +84,44 @@
         ]
     },
     "schema": {
-        "_select_from": {
-            "products": {
-                "select_method": "rand_choice",
-                "select_quantity": "many",
-                "choose_keys": [
-                    "item_price",
-                    "sku"
-                ],
-                "flatten": false,
-                "value_errors": [
-                    "type"
-                ]
-            },
-            "customers": {
-                "select_method": "rand_choice",
-                "select_quantity": 1,
-                "choose_keys": [],
-                "flatten": true,
-                "value_errors": [
-                    "type"
-                ]
-            },
-            "shops": {
-                "select_method": "rand_choice",
-                "select_quantity": 2,
-                "choose_keys": [],
-                "flatten": false,
-                "value_errors": [
-                    "type"
-                ]
-            }
+        "products": {
+            "existing": true,
+            "select_method": "rand_choice",
+            "select_quantity": "many",
+            "choose_keys": [
+                "item_price",
+                "sku"
+            ],
+            "flatten": false,
+            "value_errors": [
+                "type"
+            ]
+        },
+        "customers": {
+            "existing": true,
+            "select_method": "rand_choice",
+            "select_quantity": 1,
+            "choose_keys": [],
+            "flatten": true,
+            "value_errors": [
+                "type"
+            ]
+        },
+        "shops": {
+            "existing": true,
+            "select_method": "rand_choice",
+            "select_quantity": 2,
+            "choose_keys": [],
+            "flatten": false,
+            "value_errors": [
+                "type"
+            ]
         },
         "volume_sold": {
+            "existing": false,
             "create_method": "rand",
             "create_type": "int",
+            "create_volume": 1,
             "insert_into": [
                 "products"
             ],
@@ -126,11 +129,15 @@
             "value_errors": []
         },
         "timestamp": {
+            "existing": false,
             "create_method": "rand",
             "create_type": "int",
-            "insert_into": [],
+            "insert_into": [
+                "shops"
+            ],
+            "create_volume": 1,
             "int_min": -10000000,
-            "in_max": 12345000,
+            "int_max": 12345000,
             "value_errors": []
         }
     }
