@@ -110,7 +110,7 @@
         "shops": {
             "existing": true,
             "select_method": "rand_choice",
-            "select_quantity": 2,
+            "select_quantity": 1,
             "choose_keys": [],
             "flatten": false,
             "value_errors": [
@@ -121,7 +121,8 @@
             "existing": false,
             "create_method": "rand",
             "create_type": "int",
-            "create_volume": 1,
+            "create_volume": 3,
+            "flatten": true,
             "insert_into": [
                 "products"
             ],
@@ -132,6 +133,7 @@
             "existing": false,
             "create_method": "rand",
             "create_type": "int",
+            "flatten": true,
             "insert_into": [
                 "shops"
             ],
