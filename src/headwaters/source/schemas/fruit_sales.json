@@ -121,7 +121,7 @@
             "existing": false,
             "create_method": "rand",
             "create_type": "int",
-            "create_volume": 3,
+            "create_volume": 1,
             "flatten": true,
             "insert_into": [
                 "products"

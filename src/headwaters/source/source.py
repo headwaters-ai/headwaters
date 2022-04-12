@@ -83,6 +83,14 @@ class Source:
 
             self.new_event_data.update(self._filter_keys(event_name))
 
+        # insertion call
+        # take a snapshot of new_event_data keys at this point
+        list_of_event_names = list(self.new_event_data.keys())
+        # then loop through those to avoid a 'dict changed shape during iteraiton' error
+        for event_name in list_of_event_names:
+            # self._flatten() operates diractly on state within the method
+            self._insert_into(event_name)
+            
         # flattening call
         # take a snapshot of new_event_data keys at this point
         list_of_event_names = list(self.new_event_data.keys())
@@ -91,13 +99,6 @@ class Source:
             # self._flatten() operates diractly on state within the method
             self._flatten(event_name)
 
-        # insertion call
-        # take a snapshot of new_event_data keys at this point
-        list_of_event_names = list(self.new_event_data.keys())
-        # then loop through those to avoid a 'dict changed shape during iteraiton' error
-        for event_name in list_of_event_names:
-            # self._flatten() operates diractly on state within the method
-            self._insert_into(event_name)
 
         # errors call
 
@@ -520,23 +521,28 @@ class Source:
             # to use to reach into self.new_event_data and add the field
             for insert_destination in insert_destinations:
 
-                # check that if the len of the insert dest is > 1, then the created field has a similar len
-                if len(self.new_event_data[insert_destination]) > 1:
-                    if len(self.new_event_data[insert_destination]) == len(
-                        self.new_event_data[field_name]
-                    ):
-                        pass
+                # need to check that the value of the self.new_event_data[insert_destination]
+                # ie where the new data is going, is a list so it can have a len
+                # where self.new_event_data[insert_destination] is a top level key, the value is just an int, float, bool, str etc
+                # which has no len
+                if isinstance(self.new_event_data[insert_destination], list) and isinstance(self.new_event_data[field_name], list):
+                    # check that if the len of the insert dest is > 1, then the created field has a similar len
+                    if len(self.new_event_data[field_name]) > 1:
+                            if len(self.new_event_data[insert_destination]) == len(
+                                self.new_event_data[field_name]
+                            ):
+                                pass
+                            else:
+                                raise ValueError(
+                                    f"lengths of create data and insert destinaiotn must match wehn len of destination is more than 1"
+                                )
                     else:
-                        raise ValueError(
-                            f"lengths of create data and insert destinaiotn must match wehn len of destination is more than 1"
-                        )
-                else:
-                    for item in self.new_event_data[insert_destination]:
-                        # get the data we want to insert which is somewhere else in the new_event_data
-                        data_to_insert = self.new_event_data[field_name]
+                        for item in self.new_event_data[insert_destination]:
+                            # get the data we want to insert which is somewhere else in the new_event_data
+                            data_to_insert = self.new_event_data[field_name]
 
-                        # then update the item with the new data to insert
-                        item.update({field_name: data_to_insert})
+                            # then update the item with the new data to insert
+                            item.update({field_name: data_to_insert})
             self.new_event_data.pop(field_name)
 
     def _flatten(self, field_name) -> None:
