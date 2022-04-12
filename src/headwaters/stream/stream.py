@@ -1,6 +1,7 @@
 import logging
 from multiprocessing.sharedctypes import Value
 import time
+from datetime import datetime
 
 
 class Stream:
@@ -97,7 +98,10 @@ class Stream:
                 time.sleep(self.burst_freq / 1_000)
 
             else:
+                start = datetime.now()
                 self.collect_emit()
+                end = datetime.now()
+                print(f"collect_emit call duration = {end - start}")
                 time.sleep(self.freq / 1_000)
 
     def collect_emit(self):

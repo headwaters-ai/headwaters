@@ -65,23 +65,10 @@
     },
     "base_freq": 60000,
     "errors": {
-        "modes": [
-            "key_errors",
-            "value_errors"
-        ],
-        "frequency": [
-            "all",
-            "random"
-        ],
-        "value_styles": [
-            "type",
-            "range"
-        ],
-        "key_styles": [
-            "missing",
-            "malformed",
-            "additional"
-        ]
+        "value_errors": true,
+        "value_error_freq": 0.01,
+        "key_errors": true,
+        "key_error_freq": 0.1
     },
     "schema": {
         "products": {
@@ -89,8 +76,6 @@
             "select_method": "rand_choice",
             "select_quantity": "many",
             "choose_keys": [
-                "item_price",
-                "sku"
             ],
             "flatten": false,
             "value_errors": [
@@ -114,7 +99,6 @@
             "choose_keys": [],
             "flatten": false,
             "value_errors": [
-                "type"
             ]
         },
         "volume_sold": {
@@ -122,20 +106,18 @@
             "create_method": "rand",
             "create_type": "int",
             "create_volume": 1,
-            "flatten": false,
             "insert_into": [
                 "products"
             ],
             "int_min": 1,
-            "value_errors": []
+            "value_errors": [
+            ]
         },
         "timestamp": {
             "existing": false,
             "create_method": "rand",
             "create_type": "int",
-            "flatten": false,
             "insert_into": [
-            
             ],
             "create_volume": 1,
             "int_min": -10000000,

@@ -2,6 +2,7 @@ import random
 import pkgutil
 import json
 import uuid
+from datetime import datetime
 
 
 class Source:
@@ -57,47 +58,58 @@ class Source:
         self.errors = initial_schema["errors"]
 
     def new_event(self):
-        """create a new event based on instructions in the schema"""
+        """public method to create a new event based on the schema of the class instance"""
 
-        # instead of creating a local variable new_event_data, i have created a class property
-        # to enable all methods to access the current state of the new_event_data without having
-        # to be passed it as an argument in the method call
-        # it also would potentially allow the last event created to remain available
-        # until self.new_event() is called again. This may be useful?
         self.new_event_data = {}
 
-        print(f"NEW EVENT")
-        print("______________________________")
-        print()
+        start = datetime.now()
+        # print(f"NEW EVENT")
+        # print("______________________________")
+        # print()
 
-        # selection or creation call
+        # CALLING ORDER
+        # the flow of method calls in new_event is intended to build up the
+        # self.new_event_data incrementally, so order matters.
+
+        # Stage 1 - creating the data
+        # ____________________________
+
+        # 1.1 selection or creation call
         for field_name, field_settings in self.schema.items():
 
             if field_settings["existing"]:
-                self.new_event_data.update(self._select_exisiting(field_name))
+                self.new_event_data.update(self._select_existing(field_name))
             else:
                 self.new_event_data.update(self._create_new(field_name))
 
-        # filtering call
+        # 1.2 filtering call
         for event_name in self.new_event_data.keys():
 
             self.new_event_data.update(self._filter_keys(event_name))
 
-        # insertion call
+        # 1.3 value errors call
+
+        for event_name in self.new_event_data.keys():
+
+            self._create_value_errors(event_name)
+
+        # Stage 2 - shaping the data
+        # __________________________
+
+        # 2.1 insertion call
         # take a snapshot of new_event_data keys at this point
         list_of_event_names = list(self.new_event_data.keys())
         # then loop through those to avoid a 'dict changed shape during iteraiton' error
         for event_name in list_of_event_names:
             self._insert_into(event_name)
 
-
-        # de-deuplicate keys from created data and insertion process
+        # 2.2 de-deuplicate keys call
+        # from created data and insertion process
         # pass the whole self.new_event_data object
-        # 3 receive back amaended object and assign
+        # & receive back amaended object and assign
         self.new_event_data = self._flatten_duplicate_sub_keys(self.new_event_data)
 
-
-        # flattening call
+        # 2.3 flattening call
         # take a snapshot of new_event_data keys at this point
         list_of_event_names = list(self.new_event_data.keys())
         # then loop through those to avoid a 'dict changed shape during iteraiton' error
@@ -105,268 +117,23 @@ class Source:
             # self._flatten() operates diractly on state within the method
             self._flatten(event_name)
 
+        # 2.4 key errors call
 
+        self._create_key_errors()
 
-
-
-
-        # errors call
-
-        # update self.new_event_data
-
-
-
-
-
-
-
-        # add a cheeky wee uuid at top level for fun
+        # add a cheeky wee uuid at top level
         self.new_event_data.update({"event_id": str(uuid.uuid4())})
 
         # pop output to console for debugging and dev only
-        print(json.dumps(self.new_event_data, indent=4))
-        print()
+        # print(json.dumps(self.new_event_data, indent=4))
+        # print()
+        end = datetime.now()
+
+        print(f"new_event call duartion = {end - start}")
 
         return self.new_event_data
 
-        # # k is "_select_from", v is dict with keys product and customer
-        # if k == "_select_from":
-        #     # DATA SELECTION ZONE
-        #     for field_name, settings in v.items():
-        #         # print(f"START {field_name} processing:")
-        #         # start with:
-        #         _selected_list = []  # choise from data goes here
-        #         # replaced by:
-        #         _filtered_list = []  # chosen keys placed here
-        #         # then loop _filtered to add value_errors
-        #         _filtered_error_list = []
-        #         # which is then assigned to self.new_event_data as the value of the key 'field_name'
-
-        #         if settings["select_method"] == "rand_choice":
-
-        #             # the config file options for rand_choice can be either an int or a 'many' string
-
-        #             # in the case of an int
-        #             if isinstance(settings["select_quantity"], int):
-        #                 # loop through the data that number of times
-        #                 # for that field_name
-        #                 for _ in range(settings["select_quantity"]):
-
-        #                     # this is the main guts of the selection of existing
-
-        #                     _selected_list.append(
-        #                         random.choice(self.existing_data[field_name])
-        #                     )
-
-        #             # in the case of the 'many' string:
-        #             if settings["select_quantity"] == "many":
-        #                 # we need to know the length of the data, then can use that
-        #                 # as the max for a randint to use as the range max:
-        #                 range_max = len(self.existing_data[field_name])
-
-        #                 for _ in range(random.randint(1, range_max)):
-        #                     _selected_list.append(
-        #                         random.choice(self.existing_data[field_name])
-        #                     )
-
-        #         # print(f"{field_name}{_selected_list = }")
-        #         # print()
-
-        #         # KEY FILTERING
-
-        #         if settings["choose_keys"]:
-
-        #             chosen_keys = settings["choose_keys"]
-        #             for s in _selected_list:
-
-        #                 # could actually generate keys errors here?
-        #                 _filtered_list.append(
-        #                     {nk: nv for nk, nv in s.items() if nk in chosen_keys}
-        #                 )
-        #         else:
-        #             _filtered_list = _selected_list
-
-        #         # print(f"{field_name}{_filtered_list = }")
-        #         # print()
-
-        #         # ERROR MODE ZONE
-
-        #         # _selecte d_list is avaibal ehere pre key selection
-        #         # for now assuming single depth dicts in the list, this is a MAJOR
-        #         # assumption and needs to be solved with some simple recursive finder funcs
-
-        #         # i know which area of schema we are in here becuase we are behing the
-        #         # "_select_from" if guard
-
-        #         # is the error_mode of value_errors active?
-        #         if "value_errors" in self.errors['modes']:
-        #         # if so, get value_errors from settings
-        #             value_errors = self.schema[k][field_name]["value_errors"]
-
-        #             # check if there are value_errors sspecified:
-        #             # only make amednments to values if there are value_errors to apply
-        #             if value_errors:
-        #                 # go through every line dict in the selection
-        #                 # as we know MAJOR ASSUMPTION HERE
-
-        #                 for _item in _filtered_list:
-
-        #                     # print(f"item in {field_name}: {_item}")
-
-        #                     # the first approach is to apply a value_error to a random key in EACH
-        #                     # item of the selected list
-        #                     # there may be more approaches in the future
-
-        #                     # so, select a random key from the dict
-        #                     random_key = random.choice(list(_item.keys()))
-        #                     # print(f"{random_key =}")
-
-        #                     the_random_value = _item[random_key]
-        #                     # print(f"{the_random_value = }")
-
-        #                     if "type" in value_errors:
-        #                         # apply type error to the random key
-
-        #                         type_dict = {
-        #                             str: 'string error, £ ?',
-        #                             int: 42, # replace with random call
-        #                             float: 1.9876542, # replace with random call
-        #                             bool: True # randomise
-        #                         }
-
-        #                         # get the type of the_random_value
-        #                         type_of_random_value = type(the_random_value)
-        #                         # print(f"the type of the random value: {type_of_random_value}")
-
-        #                         # remove the type of the random value from the list of types
-        #                         type_dict.pop(type_of_random_value)
-        #                         # print(f"the type dict after editing: {type_dict}")
-
-        #                         # remove random key from _item dict to be replaced with error_item
-        #                         _item.pop(random_key)
-        #                         # print(f"item with value removed: {_item}")
-
-        #                         # replace with same random key but select a new error val from type dict
-        #                         _item.update({random_key: type_dict[random.choice(list(type_dict.keys()))]})
-        #                         # print(f"recombined _itme but with error value: {_item}")
-
-        #                         # add the new error filled item into the _filtered_error_list
-        #                         _filtered_error_list.append(_item)
-
-        #                     # print()
-
-        #                     if "range" in value_errors:
-        #                         pass
-        #                         # print(f"this is on the range")
-        #                     # will need a way to handle erroor types here
-        #                     # could use list of 'value_error_styles' in schema
-
-        #             else:
-        #                 _filtered_error_list = _filtered_list
-
-        #         else:
-        #             _filtered_error_list = _filtered_list
-
-        #         # then create out this field_name part of the self.new_event_data
-        #         _this_data_name_dict = {field_name: _filtered_error_list}
-        #         # print(_this_data_name_dict)
-        #         # print()
-
-        #         # then append this speciffc dict for the field_name into the main self.new_event_data dict
-        #         self.new_event_data.update(_this_data_name_dict)
-        #         # print()
-        #         # print(f"self.new_event_data after selection, filtering and errors: {self.new_event_data}")
-        #         # print()
-
-        # # this is the main creation section
-        # # where the _select_from key has not been hit, so every other key will hit this
-        # # will be processed in this section
-        # # per field_name
-        # else:
-        #     # DE NOVO CREATION ZONE
-        #     # so can use the v["accessor"] to access the settings, rename for clarity
-        #     field_name = k
-        #     settings = v
-
-        #     if settings["create_method"] == "rand":  # it will be for now
-
-        #         # 1 create the new_value for the field_name first
-        #         #   considtioally check for type
-        #         #   create new
-        #         # 2 then apply error logic
-        #         # 3 then either insert into a destinaiton in the self.new_event_data or in at top level
-
-        #         if settings["insert_into"]:
-        #             # let's guard just to check the self.new_event_data has been created
-        #             if self.new_event_data:
-        #                 # now, here we are going to have a list of one or more target
-        #                 # keys/fields we want to insert into.
-        #                 # let's get those:
-        #                 insert_destinations = settings["insert_into"]  # it's a list
-        #                 print(json.dumps(self.new_event_data, indent=4))
-        #                 # lets loop thought the list and pull out each insert destination
-        #                 for insert_destination in insert_destinations:
-
-        #                     # the insert destination in the self.new_event_data data has
-        #                     # one or more lines in it
-        #                     # within the self.new_event_data
-        #                     # every one of these lines is a dict
-        #                     for line_dict in self.new_event_data[insert_destination]:
-        #                         print(f"insert dest {insert_destination} line dict is {line_dict}")
-        #                         # this line_dict is what we will want to add the new_int into
-
-        #                         # update the line_dict
-        #                         line_dict.update(self._create_new(field_name))
-
-        #         else:
-
-        #             self.new_event_data.update(self._create_new(field_name))
-
-        # FLATTENING ZONE
-        # after the self.new_event_data has been formed and created data has been inserted
-        # this is when any flattening can happen to shape the final self.new_event_data
-        # flatten is a bool
-
-        # let's get every key in the _select_from part of the config file into a list
-        # data_names = list(self.schema["_select_from"].keys())
-
-        # # check if the field_name has a true flatten param
-        # for field_name in data_names:
-        #     if self.schema["_select_from"][field_name]["flatten"]:
-        #         # the config file is true to flatten, the work happens here
-        #         # fuck, nested dict may need a recursive algo here.... :|
-        #         # but, for now, let's assume single level
-
-        #         # we cannot flatten an object with more than one entry
-        #         # two ways to check, check data or the config file
-        #         # to check len == 1
-        #         # let's assume the config translates to the actual data for now
-
-        #         if self.schema["_select_from"][field_name]["select_quantity"] == 1:
-
-        #             # we need to reach in and grab the single dict from the self.new_event_data data
-        #             # with the key of the field_name
-        #             this_dict = self.new_event_data[field_name]
-
-        #             # then for each element of this_dict we need to update the top level
-        #             # of self.new_event_data, then delete the key
-        #             for this_dict_element in this_dict:
-        #                 self.new_event_data.update(this_dict_element)
-        #             # once all the elements have been squirrelled to the top level, delete the key
-        #             self.new_event_data.pop(field_name, None)
-
-        #         else:
-        #             # do nothing..
-        #             # or should i raise an error to advise??
-        #             pass
-
-        #     else:
-        #         # we just do nothing
-        #         pass
-
-        # return self.new_event_data
-
-    def _select_exisiting(self, field_name) -> list:
+    def _select_existing(self, field_name: str) -> dict:
 
         """Given the field_name to search the schema for,
         check the 'select_method' and
@@ -416,7 +183,7 @@ class Source:
 
         return return_shape
 
-    def _create_new(self, field_name) -> dict:
+    def _create_new(self, field_name: str) -> dict:
         """create a new value for a supplied field_name (ie the top_level key of
         ``self.schema``) and returns a dict of a list of dicts keyed by ``field_name``:
 
@@ -484,7 +251,7 @@ class Source:
 
         return return_shape
 
-    def _filter_keys(self, field_name) -> dict:
+    def _filter_keys(self, field_name: str) -> dict:
         """call on each field_name in self.new_event_data and filters to only keys specified
 
         returns a dict of a list of dicts keyed by ``field_name``:
@@ -539,19 +306,20 @@ class Source:
 
                 # need to check that the value of the self.new_event_data[insert_destination]
                 # ie where the new data is going, is a list so it can have a len
-                # where self.new_event_data[insert_destination] is a top level key, the value is just an int, float, bool, str etc
+                # where self.new_event_data[insert_destination] is a top level key, the value
+                # is just an int, float, bool, str etc
                 # which has no len
-                if isinstance(self.new_event_data[insert_destination], list) and isinstance(self.new_event_data[field_name], list):
-                    # check that if the len of the insert dest is > 1, then the created field has a similar len
-                    if len(self.new_event_data[field_name]) > 1:
-                            if len(self.new_event_data[insert_destination]) == len(
-                                self.new_event_data[field_name]
-                            ):
-                                pass
-                            else:
-                                raise ValueError(
-                                    f"lengths of create data and insert destinaiotn must match wehn len of destination is more than 1"
-                                )
+                if isinstance(
+                    self.new_event_data[insert_destination], list
+                ) and isinstance(self.new_event_data[field_name], list):
+                    # if the len of the insert dest is > 1
+                    # then _create_new needs to be recalled for num times == len(insert dest)
+                    if len(self.new_event_data[insert_destination]) > 1:
+                        for item in self.new_event_data[insert_destination]:
+                            item.update(self._create_new(field_name))
+
+                    # if the len of the insert dest is == 1
+                    # insert the created field as is
                     else:
                         for item in self.new_event_data[insert_destination]:
                             # get the data we want to insert which is somewhere else in the new_event_data
@@ -559,20 +327,23 @@ class Source:
 
                             # then update the item with the new data to insert
                             item.update({field_name: data_to_insert})
+                            # this will be flattened during the call to _flatten_duplicate_sub_keys call
             self.new_event_data.pop(field_name)
 
-    def _flatten_duplicate_sub_keys(self, parent):
-        """ this purpose of this function is to:
-        
-        - traverse the arbitary depth of parent
-        - identify any duplicate keys in sub dicts
-        - flatten the key to the parent level and therefor remove the duplicate
+    def _flatten_duplicate_sub_keys(self, parent: dict) -> dict:
+        """this purpose of this method is to:
 
-        assumptions for now is that any dict that holds one of more dicts
-        as values holds them in a list
-        and that form {"key": {"key": value}} will not exist, instead
-        {"key": [{"key": value}]} is expected to exist
-        
+        - traverse the arbitary depth of a passed dict object ``parent``
+        - identify any duplicate keys in sub dicts
+        - flatten the key to the ``parent`` level and therefore remove the duplicate
+
+        An assumption for now is that any dict that itself holds one or more dicts
+        as values holds them in a list and that the shape
+            ``{"key": {"key": value}}``
+        will not exist, instead the shape
+            ``{"key": [{"key": value}]}``
+        is expected to exist.
+
         """
 
         if isinstance(parent, dict):
@@ -597,23 +368,20 @@ class Source:
                             new_val = parent[key][0]
                             parent.update(new_val)
                             # print(f"{parent}")
-                            
-                    
+
                     self._flatten_duplicate_sub_keys(parent[key])
 
-                
         elif isinstance(parent, list):
             for item in parent:
                 # print(f"items: {item.keys()}")
                 self._flatten_duplicate_sub_keys(item)
 
-
         else:
             pass
 
-        return parent  
+        return parent
 
-    def _flatten(self, field_name) -> None:
+    def _flatten(self, field_name: str) -> None:
         """Call on each fiedl name in new_event_data
 
         This method operates directly on ``self.new_event_data``, unlike other methods
@@ -684,3 +452,86 @@ class Source:
                     # is until it causes further issues
                     if item_key != field_name:
                         self.new_event_data.pop(field_name)
+
+    def _create_value_errors(self, field_name):
+        """The purpose of this method is to:
+
+        - find the ``value_errors`` list of the param ``field_name`` in ``self.schema``
+            - this is currently being called at an early stage of the new_event process
+            therefore the top level keys of ``self.new_event_data`` - which are what
+            are being passed as ``field_name`` - will still reflect
+            those of ``self.schema``
+
+        - based on the error setting found for that key, fuck the data ''value'' up
+        - replace the new value in place of the old value
+
+
+
+        """
+
+        # ``self.errors`` specifies the active error mode as includign value_errors
+        if self.errors["value_errors"]:
+            if random.random() < self.errors["value_error_freq"]:
+                for value_error in self.schema[field_name]["value_errors"]:
+                    if value_error == "type":
+
+                        # at this stage in the new event process we know
+                        # that each field_name in the new event data has a list of more dicts.
+                        # this assumption of calling order and initial shape is either something
+                        # of great horror or isn't an issue. Time will tell. Feels sketchy.
+                        for item in self.new_event_data[field_name]:
+
+                            # choosing a random key to mess up the value of feels a good first
+                            # methodology. I'd imagine a lot of time and refactoring is going to
+                            # happen here.
+                            random_key = random.choice(list(item.keys()))
+
+                            # get the current value of that random key and infer it's type
+                            curr_value = item[random_key]
+                            curr_value_type = type(curr_value)
+
+                            type_dict = {
+                                str: "string error, £ ?",
+                                int: 42,  # replace with random call, or faker
+                                float: 1.9876542,  # replace with random call, or faker
+                                bool: True,  # randomise
+                            }
+
+                            # edit the type dict to remove the current value's type
+                            type_dict.pop(curr_value_type)
+
+                            # randomly choose a value from the type_dict to replace the
+                            # current value of the item
+                            new_error_value = type_dict[
+                                random.choice(list(type_dict.keys()))
+                            ]
+                            item.update({random_key: new_error_value})
+
+        else:
+            pass
+
+    def _create_key_errors(self):
+        # keep this simple
+        # good opp to test probaility concept
+        # just pass across the top level keys of new event and
+        # based on probablity, either drop or change. Could add but lets see
+
+        # check key erro mode is active
+        if self.errors["key_errors"]:
+            if random.random() < self.errors["key_error_freq"]:
+                key_list = list(self.new_event_data.keys())
+
+                chosen_key = random.choice(key_list)
+                # embracing randomness to either drop or mess with key
+   
+                if random.random() >= 0.5:
+                    self.new_event_data.pop(chosen_key)
+                else:
+                    messed_up_key = chosen_key[:len(chosen_key)-2]
+                    self.new_event_data[messed_up_key] = self.new_event_data[chosen_key]
+                    self.new_event_data.pop(chosen_key)
+
+
+        else:
+            pass
+
