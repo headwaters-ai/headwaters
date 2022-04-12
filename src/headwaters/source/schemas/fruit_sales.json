@@ -122,7 +122,7 @@
             "create_method": "rand",
             "create_type": "int",
             "create_volume": 1,
-            "flatten": true,
+            "flatten": false,
             "insert_into": [
                 "products"
             ],
@@ -133,9 +133,9 @@
             "existing": false,
             "create_method": "rand",
             "create_type": "int",
-            "flatten": true,
+            "flatten": false,
             "insert_into": [
-                "shops"
+            
             ],
             "create_volume": 1,
             "int_min": -10000000,

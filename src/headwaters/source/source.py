@@ -88,9 +88,15 @@ class Source:
         list_of_event_names = list(self.new_event_data.keys())
         # then loop through those to avoid a 'dict changed shape during iteraiton' error
         for event_name in list_of_event_names:
-            # self._flatten() operates diractly on state within the method
             self._insert_into(event_name)
-            
+
+
+        # de-deuplicate keys from created data and insertion process
+        # pass the whole self.new_event_data object
+        # 3 receive back amaended object and assign
+        self.new_event_data = self._flatten_duplicate_sub_keys(self.new_event_data)
+
+
         # flattening call
         # take a snapshot of new_event_data keys at this point
         list_of_event_names = list(self.new_event_data.keys())
@@ -100,9 +106,19 @@ class Source:
             self._flatten(event_name)
 
 
+
+
+
+
         # errors call
 
         # update self.new_event_data
+
+
+
+
+
+
 
         # add a cheeky wee uuid at top level for fun
         self.new_event_data.update({"event_id": str(uuid.uuid4())})
@@ -545,6 +561,58 @@ class Source:
                             item.update({field_name: data_to_insert})
             self.new_event_data.pop(field_name)
 
+    def _flatten_duplicate_sub_keys(self, parent):
+        """ this purpose of this function is to:
+        
+        - traverse the arbitary depth of parent
+        - identify any duplicate keys in sub dicts
+        - flatten the key to the parent level and therefor remove the duplicate
+
+        assumptions for now is that any dict that holds one of more dicts
+        as values holds them in a list
+        and that form {"key": {"key": value}} will not exist, instead
+        {"key": [{"key": value}]} is expected to exist
+        
+        """
+
+        if isinstance(parent, dict):
+            for key in parent.keys():
+                if isinstance(parent[key], list):
+                    if len(parent[key]) == 1:
+                        item_list = []
+                        for item in parent[key]:
+                            item_list.append(item)
+
+                        item_keys = []
+                        for d in item_list:
+                            for k, v in d.items():
+                                item_keys.append(k)
+
+                        # print(f"{key}: {item_list = }")
+
+                        # print(f"{key} duplicate: {key in item_keys}")
+
+                        if key in item_keys:
+                            # print(f"execute change here")
+                            new_val = parent[key][0]
+                            parent.update(new_val)
+                            # print(f"{parent}")
+                            
+                    
+                    self._flatten_duplicate_sub_keys(parent[key])
+
+                
+        elif isinstance(parent, list):
+            for item in parent:
+                # print(f"items: {item.keys()}")
+                self._flatten_duplicate_sub_keys(item)
+
+
+        else:
+            pass
+
+        return parent  
+
     def _flatten(self, field_name) -> None:
         """Call on each fiedl name in new_event_data
 
@@ -585,33 +653,34 @@ class Source:
             flatten = False
 
         if flatten:
-            if len(self.new_event_data[field_name]) > 1:
-                # just do nothing
-                pass
-            else:
-                # operate on self.new_event_data directly
-                for item in self.new_event_data[field_name]:
-                    # egress the item key to reference to stop duplicated keys popping
-                    item_key = list(item.keys())[0]
-                    self.new_event_data.update(item)
+            if isinstance(self.new_event_data[field_name], list):
+                if len(self.new_event_data[field_name]) > 1:
+                    # just do nothing
+                    pass
+                else:
+                    # operate on self.new_event_data directly
+                    for item in self.new_event_data[field_name]:
+                        # egress the item key to reference to stop duplicated keys popping
+                        item_key = list(item.keys())[0]
+                        self.new_event_data.update(item)
 
-                # this little jiggery pokery below is to guard against when a
-                # created field duplicates it's key and is of form:
-                #     {
-                #         'volume_sold': [
-                #             {'volume_sold': 12}
-                #         ]
-                #     }
-                # it will be flattened to:
-                #     {
-                #         'volume_sold': 12
-                #     }
-                # but then dict.pop('volume_sold') is called becuase the existing data approach has different
-                # key in the list of dicts form the field_name itself, so the approach is to pop 'field_name'
-                # so i don't want to pop field_name if it matches the key of the item being flattened
-                # If you don't protect like this, the key pops itself after the update call...
-                # It's probably bad form in the way created events are being created, but the
-                # form currently works for other method calls and reasons, so I'm keeping like it
-                # is until it causes further issues
-                if item_key != field_name:
-                    self.new_event_data.pop(field_name)
+                    # this little jiggery pokery below is to guard against when a
+                    # created field duplicates it's key and is of form:
+                    #     {
+                    #         'volume_sold': [
+                    #             {'volume_sold': 12}
+                    #         ]
+                    #     }
+                    # it will be flattened to:
+                    #     {
+                    #         'volume_sold': 12
+                    #     }
+                    # but then dict.pop('volume_sold') is called becuase the existing data approach has different
+                    # key in the list of dicts form the field_name itself, so the approach is to pop 'field_name'
+                    # so i don't want to pop field_name if it matches the key of the item being flattened
+                    # If you don't protect like this, the key pops itself after the update call...
+                    # It's probably bad form in the way created events are being created, but the
+                    # form currently works for other method calls and reasons, so I'm keeping like it
+                    # is until it causes further issues
+                    if item_key != field_name:
+                        self.new_event_data.pop(field_name)
