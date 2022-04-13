@@ -17,7 +17,7 @@ class Stream:
 
         self.name = self.source.name
 
-        self.freq = 1_000
+        self.freq = 3_000
         self.freq_min = 100
         self.running = True
 

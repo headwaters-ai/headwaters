@@ -4,6 +4,10 @@ import json
 from json.decoder import JSONDecodeError
 import uuid
 from datetime import datetime
+from copy import deepcopy
+
+from numpy import source
+from pyparsing import original_text_for
 
 
 class Source:
@@ -11,7 +15,7 @@ class Source:
     """
     The Source class provides the mechanism to create a ``new_event`` from existing
     data, freshly created data, or a combination of both. Class attribute dictionaries
-    of ``self.schema``, ``self.errors`` and ``self.existing`` are loaded from a
+    of ``self.config["schema"]``, ``self.config["errors"]`` and ``self.existing`` are loaded from a
     config file at instantiation and control the initial characteristics of
     the ``new_event``. Public getter and setters provide methods to change the
     character of a ``new_event`` enabling changes to all aspects of the
@@ -62,21 +66,17 @@ class Source:
                 f"ValueError: 'source_name' parameter must be a string, passed method was {type(source_name)}"
             )
 
-        supported_schemas = [
+        supported_sources = [
             "fruit_sales",
         ]
 
-        if source_name not in supported_schemas:
+        if source_name not in supported_sources:
             raise ValueError(
                 f"ValueError: passed 'source_name' of {source_name} is not supported"
             )
 
         # attributes
         self.name = source_name
-        self.errors = {}  # will be populated by self._load_schema method call
-        self.schema = {}  # will be populated by self._load_schema method call
-        self.existing_data = {}  # will be populated by self._load_schema method call
-        self.new_event_data = {}  # will be used by the self.new_event method
 
         # once checks pass, go and grab the relevant data
         self._load_schema()
@@ -88,7 +88,7 @@ class Source:
         """
 
         try:
-            initial_schema = pkgutil.get_data(
+            initial_config = pkgutil.get_data(
                 "headwaters", f"/source/schemas/{self.name}.json"
             )
         except:
@@ -96,19 +96,21 @@ class Source:
             raise
 
         try:
-            initial_schema = json.loads(initial_schema)
+            initial_config = json.loads(initial_config)
         except JSONDecodeError:
             raise ValueError(
                 f"error parsing json config file for {self.name}, is there an error in the {self.name}.json file?"
             )
 
-        self.schema = initial_schema["schema"]
-        self.errors = initial_schema["errors"]
-        self.existing_data = initial_schema["data"]
+        self.config = initial_config
+        # self.config["schema"] = initial_config["schema"]
+        # self.config["errors"] = initial_config["errors"]
+        # self.config["data"] = initial_config["data"]
+        # self.config["base_freq"] = initial_config["base_freq"]
 
     def new_event(self) -> dict:
         """Create and return a ``new_event`` dictionary object according to the
-        settings in attributes ``self.schema`` and ``self.errors``
+        settings in attributes ``self.config["schema"]`` and ``self.config["errors"]``
 
         :returns: dictionary of the ``new_event``
 
@@ -128,23 +130,23 @@ class Source:
         # ____________________________
 
         # 1.1 selection or creation call
-        for field_name, field_settings in self.schema.items():
+        for a, b in self.config["schema"].items():
 
-            if field_settings["existing"]:
-                self.new_event_data.update(self._select_existing(field_name))
+            if b["existing"]:
+                self.new_event_data.update(self._select_existing(a))
             else:
-                self.new_event_data.update(self._create_new(field_name))
+                self.new_event_data.update(self._create_new(a))
 
         # 1.2 filtering call
-        for event_name in self.new_event_data.keys():
+        for c in self.new_event_data.keys():
 
-            self.new_event_data.update(self._filter_keys(event_name))
+            self.new_event_data.update(self._filter_keys(c))
 
         # 1.3 value errors call
+        if self.config["errors"]["value_errors"]:
+            for d in self.new_event_data.keys():
 
-        for event_name in self.new_event_data.keys():
-
-            self._create_value_errors(event_name)
+                self.new_event_data.update(self._create_value_errors(d))
 
         # Stage 2 - shaping the data
         # __________________________
@@ -176,6 +178,9 @@ class Source:
         # add a cheeky wee uuid at top level
         self.new_event_data.update({"event_id": str(uuid.uuid4())})
 
+        # print(self.new_event_data["event_id"])
+        # print("___________________")
+        # print()
         return self.new_event_data
 
     def _select_existing(self, field_name: str) -> dict:
@@ -184,10 +189,10 @@ class Source:
         check the 'select_method' and
         'select_quantity' of the schema for that ``field_name`` and return a
          dict keyed by field_name with value of
-        a list of selected dict items from ``self.existing_data``.
+        a list of selected dict items from ``self.config["data"]``.
 
         :param field_name: 'field_name' is the key of the
-        ``self.schema`` dictionary like this: ``self.schema[field_name]``
+        ``self.config["schema"]`` dictionary like this: ``self.config["schema"][field_name]``
 
         :returns: dict keyed by ``field_name`` with value set as a list of
         dicts of generated new items of shape:
@@ -203,7 +208,7 @@ class Source:
 
         """
 
-        field_settings = self.schema[field_name]
+        field_settings = self.config["schema"][field_name]
 
         output_values = []
 
@@ -211,6 +216,7 @@ class Source:
 
             # the config file options for rand_choice can be either an int or a 'many' string
 
+            existing_data_list = deepcopy(self.config["data"][field_name])
             # in the case of an int
             if isinstance(field_settings["select_quantity"], int):
                 # loop through the data that number of times
@@ -220,16 +226,16 @@ class Source:
                     # this is the main guts of the selection of existing
                     # this assumes that the value of each ``field_name`` in
                     # existing data is a list. This assumption may not always hold?
-                    output_values.append(random.choice(self.existing_data[field_name]))
+                    output_values.append(random.choice(existing_data_list))
 
             # in the case of the 'many' string:
             if field_settings["select_quantity"] == "many":
                 # we need to know the length of the data, then can use that
                 # as the max for a randint to use as the range:
-                range_max = len(self.existing_data[field_name])
+                range_max = len(self.config["data"][field_name])
 
                 for _ in range(random.randint(1, range_max)):
-                    output_values.append(random.choice(self.existing_data[field_name]))
+                    output_values.append(random.choice(existing_data_list))
 
         return_shape = {field_name: output_values}
 
@@ -237,13 +243,13 @@ class Source:
 
     def _create_new(self, field_name: str) -> dict:
         """Create a new value for a supplied field_name (ie the top_level key of
-        ``self.schema``) and return a dict of a list of dicts keyed by ``field_name``:
+        ``self.config["schema"]``) and return a dict of a list of dicts keyed by ``field_name``:
 
         The quantity of items generated and appended to  the list is
         controlled by the ``create_volume`` setting.
 
         :param field_name: the ``field_name`` is the key of the
-        ``self.schema`` dictionary ``self.schema[field_name]``
+        ``self.config["schema"]`` dictionary ``self.config["schema"][field_name]``
 
         :returns: dict keyed by ``field_name`` with value set as a
         list of dicts of generated new items of shape:
@@ -257,7 +263,7 @@ class Source:
             }
 
         """
-        settings = self.schema[field_name]
+        settings = self.config["schema"][field_name]
         output_values = []
 
         try:
@@ -314,7 +320,7 @@ class Source:
         returns a dict of a list of dicts keyed by ``field_name``:
 
         :param field_name: the ``field_name`` is the key of the
-        ``self.schema`` dictionary ``self.schema[field_name]``
+        ``self.config["schema"]`` dictionary ``self.config["schema"][field_name]``
 
         :returns: dict keyed by ``field_name`` with value set as a list of dicts
         of generated new items of shape:
@@ -328,7 +334,7 @@ class Source:
             }
         """
 
-        settings = self.schema[field_name]
+        settings = self.config["schema"][field_name]
 
         # again, assuming the data shape is a list as expected.
         field_values = self.new_event_data[field_name]
@@ -355,13 +361,13 @@ class Source:
         Operates directly upon the ``self.new_event_data`` attribute object and so does not
         return.
 
-        :param field_name: the field_name of both ``self.schema`` and ``self.new_event_data``
+        :param field_name: the field_name of both ``self.config["schema"]`` and ``self.new_event_data``
 
         """
 
         # lets grab the list of insert destinations from the schema
         try:
-            insert_destinations = self.schema[field_name]["insert_into"]
+            insert_destinations = self.config["schema"][field_name]["insert_into"]
         except KeyError:
             insert_destinations = False
 
@@ -481,7 +487,7 @@ class Source:
 
         # assess if the flatten settings bool is true
         try:
-            flatten = self.schema[field_name]["flatten"]
+            flatten = self.config["schema"][field_name]["flatten"]
         except KeyError:
             flatten = False
 
@@ -518,78 +524,175 @@ class Source:
                     if item_key != field_name:
                         self.new_event_data.pop(field_name)
 
-    def _create_value_errors(self, field_name: str) -> None:
+    def _create_value_errors(self, field_name: str) -> dict:
         """Create errors in the ''values'' of ``self.new_event_data['field_name']``
         according to the value error settings
-        in ``self.schema[field_name]['value_errors'] if value_error_mode
+        in ``self.config["schema"][field_name]['value_errors'] if value_error_mode
         is activated globally.
 
         Uses random float generation to implement simplistic probability of event errors.
 
-        Operates directly on the ``self.new_event_data`` attribute so does not return.
+        # Operates directly on the ``self.new_event_data`` attribute so does not return.
 
-        :param field_name: field_name to query both ``self.new_event_data`` and ``self.schema``
+        :param field_name: field_name to query both ``self.new_event_data`` and ``self.config["schema"]``
 
         """
+        # BUG
+        # NEW EVENT
+        # ______________________________
 
-        # ``self.errors`` specifies the active error mode as includign value_errors
-        if self.errors["value_errors"]:
-            if random.random() < self.errors["value_error_prob"]:
-                for value_error in self.schema[field_name]["value_errors"]:
-                    if value_error == "type":
+        # {'item_name': 'bananas', 'item_price': 1.99, 'sku': 0.04725067688767293, 'volume_sold': 88}
+        # going to type error: item_price
 
-                        # at this stage in the new event process we know
-                        # that each field_name in the new event data has a list of more dicts.
-                        # this assumption of calling order and initial shape is either something
-                        # of great horror or isn't an issue. Time will tell. Feels sketchy.
-                        for item in self.new_event_data[field_name]:
+        # {'cust_id': 76543, 'cust_name': 'Grace'}
+        # going to type error: cust_name
 
-                            # choosing a random key to mess up the value of feels a good first
-                            # methodology. I'd imagine a lot of time and refactoring is going to
-                            # happen here.
-                            random_key = random.choice(list(item.keys()))
+        # e013b01c-369f-42e1-ad4d-be5726ab82c6
+        # ___________________
 
-                            # get the current value of that random key and infer it's type
-                            curr_value = item[random_key]
-                            curr_value_type = type(curr_value)
+        # NEW EVENT
+        # ______________________________
 
-                            type_dict = {
-                                str: "string error, £ ?",
-                                int: 42,  # replace with random call, or faker
-                                float: 1.9876542,  # replace with random call, or faker
-                                bool: True,  # randomise
-                            }
+        # 97930362-3a02-43fa-8527-8306cd9c58b2
+        # ___________________
 
-                            # edit the type dict to remove the current value's type
-                            type_dict.pop(curr_value_type)
+        # NEW EVENT
+        # ______________________________
 
-                            # randomly choose a value from the type_dict to replace the
-                            # current value of the item
-                            new_error_value = type_dict[
-                                random.choice(list(type_dict.keys()))
-                            ]
-                            item.update({random_key: new_error_value})
+        # f8ca1ec7-0f9a-41b3-88aa-eaae930b76c7
+        # ___________________
+
+        # NEW EVENT
+        # ______________________________
+
+        # {'item_name': 'damsons', 'item_price': 1.2, 'sku': 45678, 'volume_sold': 36}
+        # going to type error: item_name
+
+        # {'cust_id': 76543, 'cust_name': 0.9793288876618228}
+        # going to type error: cust_name
+
+        # 1c1f2fa9-2359-4fb9-8730-20a99e4b8fc7
+        # ___________________
+
+        # WTF>???
+
+        # ANTOHER, WORSE ONE
+        # NEW EVENT
+        # ______________________________
+
+        # {'cust_id': 76543, 'cust_name': 'Grace'}
+        # going to type error: cust_name
+
+        # replaced with eorr_value: -82456408
+        # b09dc1ba-ea30-493b-92b1-0c034d7c0531
+        # ___________________
+
+        # NEW EVENT
+        # ______________________________
+
+        # {'cust_id': 76543, 'cust_name': -82456408}
+        # going to type error: cust_id
+
+        # replaced with eorr_value: 0.1500077091678853
+        # 6dea5915-57b8-4b69-bd06-2799f978bbf7
+        # ___________________
+
+        # NEW EVENT
+        # ______________________________
+
+        # {'cust_id': 0.1500077091678853, 'cust_name': -82456408}
+        # going to type error: cust_id
+
+        # replaced with eorr_value: a91f0c3a
+        # 68ad87c3-a722-42c6-bb0b-5a677b56a359
+        # ___________________
+
+        # ``self.config["errors"]`` specifies the active error mode as includign value_errors
+
+        try:
+            value_errors_list = self.config["schema"][field_name]["value_errors"]
+        except KeyError:
+            value_errors_list = False
+
+        if value_errors_list:
+            for value_error in value_errors_list:
+                if value_error == "type":
+
+                    # at this stage in the new event process we know
+                    # that each field_name in the new event data has a list of more dicts.
+                    # this assumption of calling order and initial shape is either something
+                    # of great horror or isn't an issue. Time will tell. Feels sketchy.
+                    r = random.random()
+                    s = self.config["errors"]["value_error_prob"]
+
+                    original_field_name_item_list = self.new_event_data[field_name]
+
+                    if r < s:
+
+                        random_item = random.choice(original_field_name_item_list)
+                      
+                        # going to remove random_item from oirignal list, fuck with it, then add it back and update new event again
+
+                        original_field_name_item_list.remove(random_item)
+
+                        # choosing a random key to mess up the value of feels a good first
+                        # methodology. I'd imagine a lot of time and refactoring is going to
+                        # happen here. That's right!
+
+                        random_key = random.choice(list(random_item.keys()))
+
+                     
+                        # get the current value of that random key and infer it's type
+                        curr_value = random_item[random_key]
+                        curr_value_type = type(curr_value)
+
+                        rand_string = str(uuid.uuid4())[:8]
+
+                        type_dict = {
+                            str: rand_string,
+                            int: random.randint(
+                                -99999999, -777777
+                            ),  # replace with random call, or faker
+                            float: random.random(),  # replace with random call, or faker
+                            bool: True,  # randomise
+                        }
+
+                        # edit the type dict to remove the current value's type
+                        type_dict.pop(curr_value_type)
+
+                        # randomly choose a value from the type_dict to replace the
+                        # current value of the item
+                        new_error_value = type_dict[
+                            random.choice(list(type_dict.keys()))
+                        ]
+
+                       
+                        new_error_filled_item = {random_key: new_error_value}
+                        random_item.update(new_error_filled_item)
+                        original_field_name_item_list.append(random_item)
+
+                    return {field_name: original_field_name_item_list}
 
         else:
-            pass
+            return {field_name: self.new_event_data[field_name]}
 
     def _create_key_errors(self):
         """Create errors in the ''keys'' of ``self.new_event_data['field_name']``
         according to the key error settings
-        in ``self.schema[field_name]['key_errors'] if key_error_mode
+        in ``self.config["schema"][field_name]['key_errors'] if key_error_mode
         is activated globally.
 
         Uses random float generation to implement simplistic probability of event errors.
 
         Operates directly on the ``self.new_event_data`` attribute so does not return.
 
-        :param field_name: field_name to query both ``self.new_event_data`` and ``self.schema``
+        :param field_name: field_name to query both ``self.new_event_data`` and ``self.config["schema"]``
 
         """
 
         # check key error mode is active
-        if self.errors["key_errors"]:
-            if random.random() < self.errors["key_error_prob"]:
+        if self.config["errors"]["key_errors"]:
+            if random.random() < self.config["errors"]["key_error_prob"]:
                 key_list = list(self.new_event_data.keys())
 
                 chosen_key = random.choice(key_list)
@@ -604,14 +707,19 @@ class Source:
         else:
             pass
 
-    def set_schema(self, field_name, new_val):
-        """ test setter to change flatten during server runtime """
-
-        # check new_val is a bool
-
-        if isinstance(new_val, bool):
-            self.schema[field_name]['flatten'] = new_val
+    def set_source_element(self, config_area=None, setting=None, new_setting_val=None, field_name=None):
+        """test setter to change during server runtime"""
+        if config_area == 'schema':
+            print("sehcme")
+            self.config[config_area][field_name].update({setting: new_setting_val})
+        elif config_area in ['errors', 'frequency']:
+            print("error patch")
+            self.config[config_area].update({setting: new_setting_val})
+       
 
     @property
-    def source_status(self):
-        pass
+    def get_source_state(self):
+
+        source_state = self.config
+
+        return source_state
