@@ -232,7 +232,6 @@ def stream_status():
     )
 
 
-
 @app.patch("/freq")
 def freq():
     """PATCH that is sent the new required value for the freq of stream new_freq
@@ -366,8 +365,8 @@ def start_burst():
             )
 
 
-@app.patch("/burst_freq")
-def burst_freq():
+@app.patch("/new_val")
+def new_val():
     """set the burst frequency by calling stream.set_burst_freq method"""
 
     # first, check the request has a json data payload
@@ -385,9 +384,9 @@ def burst_freq():
         if not stream_name:
             raise ValueError("'stream_name' must not be empty")
 
-        burst_freq = data["burst_freq"]
-        if not burst_freq:
-            raise ValueError("'burst_freq' must not be zero")
+        new_val = data["new_val"]
+        if not new_val:
+            raise ValueError("'new_val' must not be zero")
 
     except KeyError as e:
         return (
@@ -410,7 +409,7 @@ def burst_freq():
     for stream in streams:
         if stream.name == stream_name:
             try:
-                stream.set_burst_freq(burst_freq)
+                stream.set_burst_freq(new_val)
                 r = stream.stream_status
                 return jsonify(r)
             except ValueError as e:
@@ -497,30 +496,73 @@ def burst_vol():
                 404,
             )
 
+@app.patch("/source")
+def patch_source():
 
-@app.get("/error_on")
-def error_on():
-    stream = random.choice(streams)
-    stream.set_error_mode_on()
+    # first, check the request has a json data payload
+    if request.json:
+        data = request.json
+    else:
+        return (
+            jsonify(msg=f"RequestError: request must contain a json payload"),
+            400,
+        )
 
-    return jsonify(msg=f"error mode set for stream {stream.name}")
+    # then, check all keys are present and have a value
+    try:
+        source_name = data["stream_name"]
+        if not source_name:
+            raise ValueError("'stream_name' must not be empty")
 
+        field_name = data['field_name']
+        if not field_name:
+            raise ValueError("'field_name' must not be empty")
 
-@app.post("/add_field")
-def add_word():
+        new_val = data["new_val"]
+        if not new_val:
+            raise ValueError("'new_val' must not be empty")
 
-    data = request.json
+    except KeyError as e:
+        return (
+            jsonify(msg=f"missing key: {str(e)}"),
+            400,
+        )
+    except ValueError as e:
+        return (
+            jsonify(msg=f"value error: {str(e)}"),
+            400,
+        )
 
-    this_domain = data["source"]
+    # check that the value of stream_name is of type 'str'
+    # NB Stream class instances handle type checking for their own properties and methods
+    if not isinstance(source_name, str):
+        return jsonify(
+            msg=f"TypeError: source name {source_name} must be an string; supplied value was of type {type(source_name)}"
+        )
 
-    r = "huh"
     for source in sources:
-        if this_domain == source.name:
-            r = source.set_field(data)
-            break
-
-    return jsonify(msg=r)
-
+        if source.name == source_name:
+            try:
+                source.set_schema(field_name, new_val)
+                r = source.stream_status
+                return jsonify(r)
+            except ValueError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+            except TypeError as e:
+                return (
+                    jsonify(msg=f"{str(e)}"),
+                    400,
+                )
+        else:
+            return (
+                jsonify(
+                    msg=f"ValueError: seems like stream '{source_name}' has not been created...?"
+                ),
+                404,
+            )
 
 @app.route("/ui", defaults={"path": ""})
 @app.route("/<path:path>")

@@ -1,6 +1,7 @@
 import random
 import pkgutil
 import json
+from json.decoder import JSONDecodeError
 import uuid
 from datetime import datetime
 
@@ -8,49 +9,53 @@ from datetime import datetime
 class Source:
 
     """
-    The Source class provides the mechanism to create a ``new_event`` from existing data, freshly
-    created data, or a combination of both. Class attribute dictionaries of ``self.schema``, ``self.errors``
-    and ``self.existing`` are loaded from a config file at instantiation and control the initial
-    characteristics of the ``new_event``. Public getter and setters provide methods to change the 
-    character of a ``new_event`` enabling changes to all aspects of the Source instance during server 
-    runtime.
+    The Source class provides the mechanism to create a ``new_event`` from existing
+    data, freshly created data, or a combination of both. Class attribute dictionaries
+    of ``self.schema``, ``self.errors`` and ``self.existing`` are loaded from a
+    config file at instantiation and control the initial characteristics of
+    the ``new_event``. Public getter and setters provide methods to change the
+    character of a ``new_event`` enabling changes to all aspects of the
+    Source instance during server runtime.
 
-    A Source class instance is created by the Server and passed into the Stream class which schedules the
-    calls to ``new_event()``
+    A Source class instance is created by the Server and passed into an instance
+    of a Stream class which schedules the calls to ``new_event()``.
 
     Core characteristics that are controllable are:
 
-        - selection from supplied exsiting data:
-            - random choice of one, many or a specified number of records per event
-            - sequential new_event creation through existing data with optional looping
+        - selection from supplied existing data:
+            - random choice of n or "many" records per event
             - filtering of keys chosen from existing data
-        - creation of new data
+        - creation of new data:
             - randomised
             - append to existing and read-from-last
-            - (Faker integration coming soon)
-        - insertion of newly created data into selected data
-        - generation of errors in the new event
-            - key errors
+            - insertion of newly created data into selected existing data
+        - generation of errors in the new event:
+            - key errors:
                 - drop key
                 - mangle key
-            - value errors
+            - value errors:
                 - type errors
-                - range errors - coming soon
             - controllable probability of error occurence
 
     '''Instantiation'''
 
     The Source class expects one argument ``source_name``. This must match a provided schema config json
-    file located in './schemas/. If the Source class cannot resolve ``source_name`` it raises 
+    file located in ``'./schemas/'``. If the Source class cannot resolve ``source_name`` it raises
     a ``FileNotFoundError`` upward.
 
     '''Public Instance Methods'''
 
-        - ``new_event()``: 
+        - ``new_event()``:
     """
 
-    def __init__(self, source_name:str):
-        """run some basic checks agsint type and value of passed source_name"""
+    def __init__(self, source_name: str):
+        """Create a new instance of a Source class.
+
+        :param source_name: the name of the source data for which a schema
+        config file exists, required.
+        :type source_name: string
+
+        """
 
         if not isinstance(source_name, str):
             raise ValueError(
@@ -66,15 +71,20 @@ class Source:
                 f"ValueError: passed 'source_name' of {source_name} is not supported"
             )
 
+        # attributes
         self.name = source_name
+        self.errors = {}  # will be populated by self._load_schema method call
+        self.schema = {}  # will be populated by self._load_schema method call
+        self.existing_data = {}  # will be populated by self._load_schema method call
+        self.new_event_data = {}  # will be used by the self.new_event method
 
         # once checks pass, go and grab the relevant data
         self._load_schema()
 
-    def _load_schema(self):
+    def _load_schema(self) -> None:
         """use pkgutil to resolve and load the schema for the passed source_name
 
-        expects a json config file at the mo'
+        expects a json config file.
         """
 
         try:
@@ -82,22 +92,30 @@ class Source:
                 "headwaters", f"/source/schemas/{self.name}.json"
             )
         except:
-
             # just bubbling the error up right now, this will need to change
             raise
 
-        initial_schema = json.loads(initial_schema)
+        try:
+            initial_schema = json.loads(initial_schema)
+        except JSONDecodeError:
+            raise ValueError(
+                f"error parsing json config file for {self.name}, is there an error in the {self.name}.json file?"
+            )
 
         self.schema = initial_schema["schema"]
-        self.existing_data = initial_schema["data"]
         self.errors = initial_schema["errors"]
+        self.existing_data = initial_schema["data"]
 
     def new_event(self) -> dict:
-        """"""
+        """Create and return a ``new_event`` dictionary object according to the
+        settings in attributes ``self.schema`` and ``self.errors``
+
+        :returns: dictionary of the ``new_event``
+
+        """
 
         self.new_event_data = {}
 
-        start = datetime.now()
         # print(f"NEW EVENT")
         # print("______________________________")
         # print()
@@ -153,18 +171,10 @@ class Source:
             self._flatten(event_name)
 
         # 2.4 key errors call
-
         self._create_key_errors()
 
         # add a cheeky wee uuid at top level
         self.new_event_data.update({"event_id": str(uuid.uuid4())})
-
-        # pop output to console for debugging and dev only
-        # print(json.dumps(self.new_event_data, indent=4))
-        # print()
-        end = datetime.now()
-
-        print(f"new_event call duartion = {end - start}")
 
         return self.new_event_data
 
@@ -172,11 +182,17 @@ class Source:
 
         """Given the field_name to search the schema for,
         check the 'select_method' and
-        'select_quantity' of the schema and return a dict keyed by field_name and value of
-        a list of selected items from self.existing_data of shape:
+        'select_quantity' of the schema for that ``field_name`` and return a
+         dict keyed by field_name with value of
+        a list of selected dict items from ``self.existing_data``.
+
+        :param field_name: 'field_name' is the key of the
+        ``self.schema`` dictionary like this: ``self.schema[field_name]``
+
+        :returns: dict keyed by ``field_name`` with value set as a list of
+        dicts of generated new items of shape:
 
         ..code-block:: python
-
 
             {
                 'field_name': [
@@ -184,9 +200,7 @@ class Source:
                     ...
                 ]
             }
-        :param field_name: the field_name is the key of the self.schema dictionary ``self.schema[field_name]``
 
-        :returns: dict keyed by ``field_name`` with value set as a list of dicts of generated new items
         """
 
         field_settings = self.schema[field_name]
@@ -204,23 +218,35 @@ class Source:
                 for _ in range(field_settings["select_quantity"]):
 
                     # this is the main guts of the selection of existing
+                    # this assumes that the value of each ``field_name`` in
+                    # existing data is a list. This assumption may not always hold?
                     output_values.append(random.choice(self.existing_data[field_name]))
 
             # in the case of the 'many' string:
             if field_settings["select_quantity"] == "many":
                 # we need to know the length of the data, then can use that
-                # as the max for a randint to use as the range max:
+                # as the max for a randint to use as the range:
                 range_max = len(self.existing_data[field_name])
 
                 for _ in range(random.randint(1, range_max)):
                     output_values.append(random.choice(self.existing_data[field_name]))
+
         return_shape = {field_name: output_values}
 
         return return_shape
 
     def _create_new(self, field_name: str) -> dict:
-        """create a new value for a supplied field_name (ie the top_level key of
-        ``self.schema``) and returns a dict of a list of dicts keyed by ``field_name``:
+        """Create a new value for a supplied field_name (ie the top_level key of
+        ``self.schema``) and return a dict of a list of dicts keyed by ``field_name``:
+
+        The quantity of items generated and appended to  the list is
+        controlled by the ``create_volume`` setting.
+
+        :param field_name: the ``field_name`` is the key of the
+        ``self.schema`` dictionary ``self.schema[field_name]``
+
+        :returns: dict keyed by ``field_name`` with value set as a
+        list of dicts of generated new items of shape:
 
         ..code-block:: python
 
@@ -230,11 +256,6 @@ class Source:
                 ]
             }
 
-        the quantity of items in the list is controlled by the 'create_volume' setting.
-
-        :param field_name: the ``field_name`` is the key of the self.schema dictionary ``self.schema[field_name]``
-
-        :returns: dict keyed by ``field_name`` with value set as a list of dicts of generated new items
         """
         settings = self.schema[field_name]
         output_values = []
@@ -249,6 +270,7 @@ class Source:
 
             if settings["create_type"] == "int":
                 # check for creation settings else just plug some defaults
+
                 # defaults:
                 int_min = -100
                 int_max = 100
@@ -273,6 +295,7 @@ class Source:
                 pass
             elif settings["create_type"] == "bool":
                 pass
+
             # more and more types here, up to faker integraiton
             elif settings["create_type"] == "address":
                 pass
@@ -287,9 +310,14 @@ class Source:
         return return_shape
 
     def _filter_keys(self, field_name: str) -> dict:
-        """call on each field_name in self.new_event_data and filters to only keys specified
-
+        """Filter the data selected from existing data
         returns a dict of a list of dicts keyed by ``field_name``:
+
+        :param field_name: the ``field_name`` is the key of the
+        ``self.schema`` dictionary ``self.schema[field_name]``
+
+        :returns: dict keyed by ``field_name`` with value set as a list of dicts
+        of generated new items of shape:
 
         ..code-block:: python
 
@@ -298,15 +326,11 @@ class Source:
                     {field_name: new_value},
                 ]
             }
-
-        the quantity of items in the list is controlled by the 'create_volume' setting.
-
-        :param field_name: the ``field_name`` is the key of the self.schema dictionary ``self.schema[field_name]``
-
-        :returns: dict keyed by ``field_name`` with value set as a list of dicts of generated new items
         """
 
         settings = self.schema[field_name]
+
+        # again, assuming the data shape is a list as expected.
         field_values = self.new_event_data[field_name]
 
         output_value = []
@@ -314,7 +338,7 @@ class Source:
         try:
             chosen_keys = settings["choose_keys"]
         except KeyError:
-            chosen_keys = None  # or raise?
+            chosen_keys = None
 
         for line in field_values:
 
@@ -327,6 +351,13 @@ class Source:
         return return_shape
 
     def _insert_into(self, field_name) -> None:
+        """Insert newly created data into another top-level key in ``self.new_event_data``
+        Operates directly upon the ``self.new_event_data`` attribute object and so does not
+        return.
+
+        :param field_name: the field_name of both ``self.schema`` and ``self.new_event_data``
+
+        """
 
         # lets grab the list of insert destinations from the schema
         try:
@@ -366,11 +397,12 @@ class Source:
             self.new_event_data.pop(field_name)
 
     def _flatten_duplicate_sub_keys(self, parent: dict) -> dict:
-        """this purpose of this method is to:
+        """De-duplicate keys in newly created data by recursively
+        traversing the passed dict object ``parent``, identifying any
+        duplicate keys in sub dictionaries if they exist, and then
+        flattening the duplicated key to the ``parent`` level.
 
-        - traverse the arbitary depth of a passed dict object ``parent``
-        - identify any duplicate keys in sub dicts
-        - flatten the key to the ``parent`` level and therefore remove the duplicate
+        Return the newly de-duplicated dict.
 
         An assumption for now is that any dict that itself holds one or more dicts
         as values holds them in a list and that the shape
@@ -379,6 +411,9 @@ class Source:
             ``{"key": [{"key": value}]}``
         is expected to exist.
 
+        :param parent: dictionary to traverse
+
+        :returns: dictionary that is deduplicated.
         """
 
         if isinstance(parent, dict):
@@ -394,21 +429,14 @@ class Source:
                             for k, v in d.items():
                                 item_keys.append(k)
 
-                        # print(f"{key}: {item_list = }")
-
-                        # print(f"{key} duplicate: {key in item_keys}")
-
                         if key in item_keys:
-                            # print(f"execute change here")
                             new_val = parent[key][0]
                             parent.update(new_val)
-                            # print(f"{parent}")
 
                     self._flatten_duplicate_sub_keys(parent[key])
 
         elif isinstance(parent, list):
             for item in parent:
-                # print(f"items: {item.keys()}")
                 self._flatten_duplicate_sub_keys(item)
 
         else:
@@ -417,37 +445,39 @@ class Source:
         return parent
 
     def _flatten(self, field_name: str) -> None:
-        """Call on each fiedl name in new_event_data
+        """Flatten values of provided field_name key to the top level
+        of the ``self.new_event_data`` dictionary.
 
-        This method operates directly on ``self.new_event_data``, unlike other methods
-        this is because i cannot think how to effectively update keys upward to the parent
-        and delete the old child key from the parent without operating within a loop of items
 
-        the other option would be to have a static class method, and pass and return new_event,
-        but that seems kind of like disconnecting then reconnecing the logic of this
-        method from the state of the class.
-
-        see pseudocode workings for a standalone function, not a class method, so the change
-        is thet use of ``self.new_event_data`` in place of ``parent``
-
-        Unsure if this the right decision, but will roll with for now.
-
-        ..code-block:: python:
-
-            def flatten(parent, child_key):
-                if len(parent[child_key]) > 1:
-                    return parent
-                else:
-                    outlist = []
-                    for item in parent[child_key]:
-                        parent.update(item)
-                    parent.pop(child_key)
-
-                    return parent
-
-            result = flatten(new_event, "customers")
 
         """
+        # This method operates directly on ``self.new_event_data``, unlike some other methods
+        # this is because i cannot think how to effectively update keys upward to the parent
+        # and delete the old child key from the parent without operating within a loop of items
+
+        # the other option would be to have a static class method, and pass and return new_event,
+        # but that seems kind of like disconnecting then reconnecing the logic of this
+        # method from the state of the class.
+
+        # see pseudocode workings for a standalone function, not a class method, so the change
+        # is thet use of ``self.new_event_data`` in place of ``parent``
+
+        # Unsure if this the right decision, but will roll with for now.
+
+        # ..code-block:: python:
+
+        #     def flatten(parent, child_key):
+        #         if len(parent[child_key]) > 1:
+        #             return parent
+        #         else:
+        #             outlist = []
+        #             for item in parent[child_key]:
+        #                 parent.update(item)
+        #             parent.pop(child_key)
+
+        #             return parent
+
+        #     result = flatten(new_event, "customers")
 
         # assess if the flatten settings bool is true
         try:
@@ -488,19 +518,17 @@ class Source:
                     if item_key != field_name:
                         self.new_event_data.pop(field_name)
 
-    def _create_value_errors(self, field_name):
-        """The purpose of this method is to:
+    def _create_value_errors(self, field_name: str) -> None:
+        """Create errors in the ''values'' of ``self.new_event_data['field_name']``
+        according to the value error settings
+        in ``self.schema[field_name]['value_errors'] if value_error_mode
+        is activated globally.
 
-        - find the ``value_errors`` list of the param ``field_name`` in ``self.schema``
-            - this is currently being called at an early stage of the new_event process
-            therefore the top level keys of ``self.new_event_data`` - which are what
-            are being passed as ``field_name`` - will still reflect
-            those of ``self.schema``
+        Uses random float generation to implement simplistic probability of event errors.
 
-        - based on the error setting found for that key, fuck the data ''value'' up
-        - replace the new value in place of the old value
+        Operates directly on the ``self.new_event_data`` attribute so does not return.
 
-
+        :param field_name: field_name to query both ``self.new_event_data`` and ``self.schema``
 
         """
 
@@ -546,26 +574,44 @@ class Source:
             pass
 
     def _create_key_errors(self):
-        # keep this simple
-        # good opp to test probaility concept
-        # just pass across the top level keys of new event and
-        # based on probablity, either drop or change. Could add but lets see
+        """Create errors in the ''keys'' of ``self.new_event_data['field_name']``
+        according to the key error settings
+        in ``self.schema[field_name]['key_errors'] if key_error_mode
+        is activated globally.
 
-        # check key erro mode is active
+        Uses random float generation to implement simplistic probability of event errors.
+
+        Operates directly on the ``self.new_event_data`` attribute so does not return.
+
+        :param field_name: field_name to query both ``self.new_event_data`` and ``self.schema``
+
+        """
+
+        # check key error mode is active
         if self.errors["key_errors"]:
             if random.random() < self.errors["key_error_prob"]:
                 key_list = list(self.new_event_data.keys())
 
                 chosen_key = random.choice(key_list)
-                # embracing randomness to either drop or mess with key
-   
+                # embracing randomness to either drop or mangle key
+
                 if random.random() >= 0.5:
                     self.new_event_data.pop(chosen_key)
                 else:
-                    messed_up_key = chosen_key[:len(chosen_key)-2]
+                    messed_up_key = chosen_key[: len(chosen_key) - 2]
                     self.new_event_data[messed_up_key] = self.new_event_data[chosen_key]
                     self.new_event_data.pop(chosen_key)
-
         else:
             pass
 
+    def set_schema(self, field_name, new_val):
+        """ test setter to change flatten during server runtime """
+
+        # check new_val is a bool
+
+        if isinstance(new_val, bool):
+            self.schema[field_name]['flatten'] = new_val
+
+    @property
+    def source_status(self):
+        pass
