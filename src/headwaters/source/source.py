@@ -8,13 +8,48 @@ from datetime import datetime
 class Source:
 
     """
-    This needs to be passed just a string indictaing the source method,
-    and the instance needs to grab the field_name and schema from the right place
-    using the pckg field_name...
+    The Source class provides the mechanism to create a ``new_event`` from existing data, freshly
+    created data, or a combination of both. Class attribute dictionaries of ``self.schema``, ``self.errors``
+    and ``self.existing`` are loaded from a config file at instantiation and control the initial
+    characteristics of the ``new_event``. Public getter and setters provide methods to change the 
+    character of a ``new_event`` enabling changes to all aspects of the Source instance during server 
+    runtime.
 
+    A Source class instance is created by the Server and passed into the Stream class which schedules the
+    calls to ``new_event()``
+
+    Core characteristics that are controllable are:
+
+        - selection from supplied exsiting data:
+            - random choice of one, many or a specified number of records per event
+            - sequential new_event creation through existing data with optional looping
+            - filtering of keys chosen from existing data
+        - creation of new data
+            - randomised
+            - append to existing and read-from-last
+            - (Faker integration coming soon)
+        - insertion of newly created data into selected data
+        - generation of errors in the new event
+            - key errors
+                - drop key
+                - mangle key
+            - value errors
+                - type errors
+                - range errors - coming soon
+            - controllable probability of error occurence
+
+    '''Instantiation'''
+
+    The Source class expects one argument ``source_name``. This must match a provided schema config json
+    file located in './schemas/. If the Source class cannot resolve ``source_name`` it raises 
+    a ``FileNotFoundError`` upward.
+
+    '''Public Instance Methods'''
+
+        - ``new_event()``: 
     """
 
-    def __init__(self, source_name):
+    def __init__(self, source_name:str):
         """run some basic checks agsint type and value of passed source_name"""
 
         if not isinstance(source_name, str):
@@ -22,11 +57,11 @@ class Source:
                 f"ValueError: 'source_name' parameter must be a string, passed method was {type(source_name)}"
             )
 
-        supported_models = [
+        supported_schemas = [
             "fruit_sales",
         ]
 
-        if source_name not in supported_models:
+        if source_name not in supported_schemas:
             raise ValueError(
                 f"ValueError: passed 'source_name' of {source_name} is not supported"
             )
@@ -57,8 +92,8 @@ class Source:
         self.existing_data = initial_schema["data"]
         self.errors = initial_schema["errors"]
 
-    def new_event(self):
-        """public method to create a new event based on the schema of the class instance"""
+    def new_event(self) -> dict:
+        """"""
 
         self.new_event_data = {}
 
@@ -471,7 +506,7 @@ class Source:
 
         # ``self.errors`` specifies the active error mode as includign value_errors
         if self.errors["value_errors"]:
-            if random.random() < self.errors["value_error_freq"]:
+            if random.random() < self.errors["value_error_prob"]:
                 for value_error in self.schema[field_name]["value_errors"]:
                     if value_error == "type":
 
@@ -518,7 +553,7 @@ class Source:
 
         # check key erro mode is active
         if self.errors["key_errors"]:
-            if random.random() < self.errors["key_error_freq"]:
+            if random.random() < self.errors["key_error_prob"]:
                 key_list = list(self.new_event_data.keys())
 
                 chosen_key = random.choice(key_list)
@@ -530,7 +565,6 @@ class Source:
                     messed_up_key = chosen_key[:len(chosen_key)-2]
                     self.new_event_data[messed_up_key] = self.new_event_data[chosen_key]
                     self.new_event_data.pop(chosen_key)
-
 
         else:
             pass
