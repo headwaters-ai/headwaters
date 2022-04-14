@@ -46,7 +46,7 @@ class Stream:
 
     def stop(self):
         """set self.running to False and stop stream if it is running
-        
+
         includes stopping the burst mode
         """
 
@@ -68,7 +68,7 @@ class Stream:
             "stream_freq": self.freq,
             "burst_mode_active": self.burst_mode,
             "burst_freq": self.burst_freq,
-            "burst_vol": self.burst_vol
+            "burst_vol": self.burst_vol,
         }
 
         return status
@@ -134,8 +134,10 @@ class Stream:
         """setter to adjust burst freqency"""
 
         if not isinstance(burst_freq, int):
-            raise TypeError(f'TypeError: burst frequency (burst_freq) must be an integer; supplied type was {type(burst_freq)}')
-        
+            raise TypeError(
+                f"TypeError: burst frequency (burst_freq) must be an integer; supplied type was {type(burst_freq)}"
+            )
+
         if burst_freq >= self.burst_freq_min:
             self.burst_freq = burst_freq
         else:
@@ -145,10 +147,12 @@ class Stream:
 
     def set_burst_vol(self, burst_vol):
         """setter to adjust burst volume"""
-        
+
         if not isinstance(burst_vol, int):
-            raise TypeError(f'TypeError: burst volume (burst_vol) must be an integer; supplied type was {type(burst_vol)}')
-        
+            raise TypeError(
+                f"TypeError: burst volume (burst_vol) must be an integer; supplied type was {type(burst_vol)}"
+            )
+
         if burst_vol >= self.burst_vol_min:
             self.burst_vol = burst_vol
         else:

@@ -585,8 +585,7 @@ def patch_source():
             400,
         )
 
-    print("yes")
-    # then, check all keys are present and have a value
+    # then, check all required keys are present and have a value
     try:
         source_name = data["stream_name"]
         if not source_name:
@@ -647,7 +646,7 @@ def patch_source():
                     config_area=config_area,
                     field_name=field_name,
                     setting=setting,
-                    new_setting_val=new_setting_val
+                    new_setting_val=new_setting_val,
                 )
                 r = source.get_source_state
                 return jsonify(r)

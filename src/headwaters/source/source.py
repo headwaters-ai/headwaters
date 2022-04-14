@@ -451,10 +451,12 @@ class Source:
         return parent
 
     def _flatten(self, field_name: str) -> None:
-        """Flatten values of provided field_name key to the top level
+        """Flatten values of provided ``field_name`` key to the top level
         of the ``self.new_event_data`` dictionary.
 
+        Does not return
 
+        :param field_name: field_name of object to flatten to top level
 
         """
         # This method operates directly on ``self.new_event_data``, unlike some other methods
@@ -532,80 +534,13 @@ class Source:
 
         Uses random float generation to implement simplistic probability of event errors.
 
-        # Operates directly on the ``self.new_event_data`` attribute so does not return.
+
 
         :param field_name: field_name to query both ``self.new_event_data`` and ``self.config["schema"]``
 
+        :returns: dict
+
         """
-        # BUG
-        # NEW EVENT
-        # ______________________________
-
-        # {'item_name': 'bananas', 'item_price': 1.99, 'sku': 0.04725067688767293, 'volume_sold': 88}
-        # going to type error: item_price
-
-        # {'cust_id': 76543, 'cust_name': 'Grace'}
-        # going to type error: cust_name
-
-        # e013b01c-369f-42e1-ad4d-be5726ab82c6
-        # ___________________
-
-        # NEW EVENT
-        # ______________________________
-
-        # 97930362-3a02-43fa-8527-8306cd9c58b2
-        # ___________________
-
-        # NEW EVENT
-        # ______________________________
-
-        # f8ca1ec7-0f9a-41b3-88aa-eaae930b76c7
-        # ___________________
-
-        # NEW EVENT
-        # ______________________________
-
-        # {'item_name': 'damsons', 'item_price': 1.2, 'sku': 45678, 'volume_sold': 36}
-        # going to type error: item_name
-
-        # {'cust_id': 76543, 'cust_name': 0.9793288876618228}
-        # going to type error: cust_name
-
-        # 1c1f2fa9-2359-4fb9-8730-20a99e4b8fc7
-        # ___________________
-
-        # WTF>???
-
-        # ANTOHER, WORSE ONE
-        # NEW EVENT
-        # ______________________________
-
-        # {'cust_id': 76543, 'cust_name': 'Grace'}
-        # going to type error: cust_name
-
-        # replaced with eorr_value: -82456408
-        # b09dc1ba-ea30-493b-92b1-0c034d7c0531
-        # ___________________
-
-        # NEW EVENT
-        # ______________________________
-
-        # {'cust_id': 76543, 'cust_name': -82456408}
-        # going to type error: cust_id
-
-        # replaced with eorr_value: 0.1500077091678853
-        # 6dea5915-57b8-4b69-bd06-2799f978bbf7
-        # ___________________
-
-        # NEW EVENT
-        # ______________________________
-
-        # {'cust_id': 0.1500077091678853, 'cust_name': -82456408}
-        # going to type error: cust_id
-
-        # replaced with eorr_value: a91f0c3a
-        # 68ad87c3-a722-42c6-bb0b-5a677b56a359
-        # ___________________
 
         # ``self.config["errors"]`` specifies the active error mode as includign value_errors
 
@@ -630,7 +565,7 @@ class Source:
                     if r < s:
 
                         random_item = random.choice(original_field_name_item_list)
-                      
+
                         # going to remove random_item from oirignal list, fuck with it, then add it back and update new event again
 
                         original_field_name_item_list.remove(random_item)
@@ -641,7 +576,6 @@ class Source:
 
                         random_key = random.choice(list(random_item.keys()))
 
-                     
                         # get the current value of that random key and infer it's type
                         curr_value = random_item[random_key]
                         curr_value_type = type(curr_value)
@@ -666,7 +600,6 @@ class Source:
                             random.choice(list(type_dict.keys()))
                         ]
 
-                       
                         new_error_filled_item = {random_key: new_error_value}
                         random_item.update(new_error_filled_item)
                         original_field_name_item_list.append(random_item)
@@ -707,15 +640,16 @@ class Source:
         else:
             pass
 
-    def set_source_element(self, config_area=None, setting=None, new_setting_val=None, field_name=None):
-        """test setter to change during server runtime"""
-        if config_area == 'schema':
+    def set_source_element(
+        self, config_area=None, setting=None, new_setting_val=None, field_name=None
+    ):
+        """setter to change source config during server runtime"""
+        if config_area == "schema":
             print("sehcme")
             self.config[config_area][field_name].update({setting: new_setting_val})
-        elif config_area in ['errors', 'frequency']:
+        elif config_area in ["errors", "frequency"]:
             print("error patch")
             self.config[config_area].update({setting: new_setting_val})
-       
 
     @property
     def get_source_state(self):
