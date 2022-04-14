@@ -1,205 +1,659 @@
-from textwrap import indent
-import pandas as pd
 import random
 import pkgutil
 import json
+from json.decoder import JSONDecodeError
 import uuid
-import logging
+from datetime import datetime
+from copy import deepcopy
+
+from numpy import source
+from pyparsing import original_text_for
+
 
 class Source:
 
     """
-    This needs to be passed just a string indictaing the source method,
-    and the instance needs to grab the data_name and schema from the right place
-    using the pckg data_name...
+    The Source class provides the mechanism to create a ``new_event`` from existing
+    data, freshly created data, or a combination of both. Class attribute dictionaries
+    of ``self.config["schema"]``, ``self.config["errors"]`` and ``self.existing`` are loaded from a
+    config file at instantiation and control the initial characteristics of
+    the ``new_event``. Public getter and setters provide methods to change the
+    character of a ``new_event`` enabling changes to all aspects of the
+    Source instance during server runtime.
 
+    A Source class instance is created by the Server and passed into an instance
+    of a Stream class which schedules the calls to ``new_event()``.
+
+    Core characteristics that are controllable are:
+
+        - selection from supplied existing data:
+            - random choice of n or "many" records per event
+            - filtering of keys chosen from existing data
+        - creation of new data:
+            - randomised
+            - append to existing and read-from-last
+            - insertion of newly created data into selected existing data
+        - generation of errors in the new event:
+            - key errors:
+                - drop key
+                - mangle key
+            - value errors:
+                - type errors
+            - controllable probability of error occurence
+
+    '''Instantiation'''
+
+    The Source class expects one argument ``source_name``. This must match a provided schema config json
+    file located in ``'./schemas/'``. If the Source class cannot resolve ``source_name`` it raises
+    a ``FileNotFoundError`` upward.
+
+    '''Public Instance Methods'''
+
+        - ``new_event()``:
     """
 
-    def __init__(self, source_name):
+    def __init__(self, source_name: str):
+        """Create a new instance of a Source class.
+
+        :param source_name: the name of the source data for which a schema
+        config file exists, required.
+        :type source_name: string
+
+        """
 
         if not isinstance(source_name, str):
             raise ValueError(
                 f"ValueError: 'source_name' parameter must be a string, passed method was {type(source_name)}"
             )
 
-        supported_models = [
+        supported_sources = [
             "fruit_sales",
         ]
 
-        if source_name not in supported_models:
+        if source_name not in supported_sources:
             raise ValueError(
                 f"ValueError: passed 'source_name' of {source_name} is not supported"
             )
 
+        # attributes
         self.name = source_name
 
-        self.get_schema()
+        # once checks pass, go and grab the relevant data
+        self._load_schema()
 
-    def get_schema(self):
+    def _load_schema(self) -> None:
         """use pkgutil to resolve and load the schema for the passed source_name
 
-        expects a json config file at the mo'
+        expects a json config file.
         """
+
         try:
-            initial_schema = pkgutil.get_data(
+            initial_config = pkgutil.get_data(
                 "headwaters", f"/source/schemas/{self.name}.json"
             )
         except:
+            # just bubbling the error up right now, this will need to change
             raise
 
-        initial_schema = json.loads(initial_schema)
+        try:
+            initial_config = json.loads(initial_config)
+        except JSONDecodeError:
+            raise ValueError(
+                f"error parsing json config file for {self.name}, is there an error in the {self.name}.json file?"
+            )
 
-        self.schema = initial_schema["schema"]
-        self.data = initial_schema["data"]
-        # print(json.dumps(self.schema, indent=4))
-   
-    def new_event(self):
-        """create a new event based on instructions in the schema"""
+        self.config = initial_config
+        # self.config["schema"] = initial_config["schema"]
+        # self.config["errors"] = initial_config["errors"]
+        # self.config["data"] = initial_config["data"]
+        # self.config["base_freq"] = initial_config["base_freq"]
 
-        new_event = {}
+    def new_event(self) -> dict:
+        """Create and return a ``new_event`` dictionary object according to the
+        settings in attributes ``self.config["schema"]`` and ``self.config["errors"]``
 
-        for k, v in self.schema.items():
+        :returns: dictionary of the ``new_event``
 
-            # k is "_select_from", v is dict with keys product and customer
-            if k == "_select_from":
-                for data_name, settings in v.items():
+        """
 
-                    # start with:
-                    _selected_list = [] # choise from data goes here
-                    # replaced by:
-                    _filtered_selected_list = [] # chosen keys placed here
+        self.new_event_data = {}
 
-                    if settings["select_method"] == "rand_choice":
+        # print(f"NEW EVENT")
+        # print("______________________________")
+        # print()
 
-                        # the config file options for rand_choice can be either an int or a 'many' string
+        # CALLING ORDER
+        # the flow of method calls in new_event is intended to build up the
+        # self.new_event_data incrementally, so order matters.
 
-                        # in the case of an int
-                        if isinstance(settings["select_quantity"], int):
-                            # loop through the data that number of times 
-                            # for that data_name
-                            for _ in range(settings["select_quantity"]):
-                                _selected_list.append(random.choice(self.data[data_name]))
+        # Stage 1 - creating the data
+        # ____________________________
 
-                        # in the case of the 'many' string:
-                        if settings["select_quantity"] == "many":
-                            # we need to know the length of the data, then can use that
-                            # as the max for a randint to use as the range max:
-                            range_max = len(self.data[data_name])
+        # 1.1 selection or creation call
+        for a, b in self.config["schema"].items():
 
-                            for _ in range(random.randint(1, range_max)):
-                                _selected_list.append(random.choice(self.data[data_name]))
-                    
-                    # print(f"{_selected_list = }")
-                    
-                    if settings["choose_keys"]:
-
-                        chosen_keys = settings["choose_keys"]
-                        for s in _selected_list:
-                            _filtered_selected_list.append({nk: nv for nk, nv in s.items() if nk in chosen_keys})
-                    else:
-                        _filtered_selected_list = _selected_list
-
-                    # print(f"{_filtered_selected_list = }")
-
-                    # then create out this data_name part of the new_event
-                    _this_data_name_dict = {data_name: _filtered_selected_list}
-                    # print(_this_data_name_dict)
-                    # print()
-
-                    # then append this speciffc dict for the data_name into the main new_event dict
-                    new_event.update(_this_data_name_dict)
-            
-            # this is the main creation section
-            # where the _select_from key has not been hit, so every other key will hit this
-            # will be processed in this section
-            # per data_name
+            if b["existing"]:
+                self.new_event_data.update(self._select_existing(a))
             else:
-                # so can use the v["accessor"] to access the settings, rename for clarity
-                data_name = k
-                settings = v
-                
-                if settings["create_method"] == "rand_int": # it will be for now
-                    
-                    if settings["insert_into"]:
-                        # let's guard just to check the new_event has been created
-                        if new_event:
-                            # now, here we are going to have a list of one or more target
-                            # keys/fields we want to insert into.
-                            # let's get those:
-                            insert_destinations = settings["insert_into"] # it's a list
+                self.new_event_data.update(self._create_new(a))
 
-                            # lets loop thought the list and pull out each insert destination
-                            for insert_destination in insert_destinations:
+        # 1.2 filtering call
+        for c in self.new_event_data.keys():
 
-                                # the insert destination in the new_event data has 
-                                # one or more lines in it
-                                # within the new_event
-                                # every one of these lines is a dict
-                                for line_dict in new_event[insert_destination]:
-                                    # this line_dict is what we will want to add the new_int into
-                                    # create the new_int
-                                    new_int = random.randint(settings["rand_min"], settings["rand_max"])
-                                    _this_data_name_dict = {data_name: new_int}
-                                    # update the line_dict
-                                    line_dict.update(_this_data_name_dict)
+            self.new_event_data.update(self._filter_keys(c))
 
-                    else:
-                        # this is the straght up, create a new int once and 
-                        # add it with its data_name
-                        # to the new_event
-                        new_int = random.randint(settings["rand_min"], settings["rand_max"])
-                        _this_data_name_dict = {data_name: new_int}
+        # 1.3 value errors call
+        if self.config["errors"]["value_errors"]:
+            for d in self.new_event_data.keys():
 
-                        new_event.update(_this_data_name_dict)
+                self.new_event_data.update(self._create_value_errors(d))
 
-        # after the new_event has been formed and created data has been inserted
-        # this is when any flattening can happen to shape the final new_event
-        # flatten is a bool
+        # Stage 2 - shaping the data
+        # __________________________
 
-        #let's get every key in the _select_from part of the config file into a list
-        data_names = list(self.schema["_select_from"].keys())
+        # 2.1 insertion call
+        # take a snapshot of new_event_data keys at this point
+        list_of_event_names = list(self.new_event_data.keys())
+        # then loop through those to avoid a 'dict changed shape during iteraiton' error
+        for event_name in list_of_event_names:
+            self._insert_into(event_name)
 
-        # check if the data_name has a true flatten param
-        for data_name in data_names:
-            if self.schema["_select_from"][data_name]["flatten"]:
-                # the config file is true to flatten, the work happens here
-                # fuck, nested dict may need a recursive algo here.... :|
-                # but, for now, let's assume single level
+        # 2.2 de-deuplicate keys call
+        # from created data and insertion process
+        # pass the whole self.new_event_data object
+        # & receive back amaended object and assign
+        self.new_event_data = self._flatten_duplicate_sub_keys(self.new_event_data)
 
-                # we cannot flatten an object with more than one entry
-                # two ways to check, check data or the config file
-                # to check len == 1
-                # let's assume the config translates to the actual data for now
+        # 2.3 flattening call
+        # take a snapshot of new_event_data keys at this point
+        list_of_event_names = list(self.new_event_data.keys())
+        # then loop through those to avoid a 'dict changed shape during iteraiton' error
+        for event_name in list_of_event_names:
+            # self._flatten() operates diractly on state within the method
+            self._flatten(event_name)
 
-                if self.schema["_select_from"][data_name]["select_quantity"] == 1:
+        # 2.4 key errors call
+        self._create_key_errors()
 
-                    # we need to reach in and grab the single dict from the new_event data
-                    # with the key of the data_name
-                    this_dict = new_event[data_name]
+        # add a cheeky wee uuid at top level
+        self.new_event_data.update({"event_id": str(uuid.uuid4())})
 
-                    # then for each element of this_dict we need to update the top level
-                    # of new_event, then delete the key
-                    for this_dict_element in this_dict:
-                        new_event.update(this_dict_element)
-                    # once all the elements have been squirrelled to the top level, delete the key
-                    new_event.pop(data_name, None)
+        # print(self.new_event_data["event_id"])
+        # print("___________________")
+        # print()
+        return self.new_event_data
 
-                else:
-                    # do nothing..
-                    # or should i raise an error to advise??
-                    pass
-                
-            else:
-                # we just do nothing
+    def _select_existing(self, field_name: str) -> dict:
+
+        """Given the field_name to search the schema for,
+        check the 'select_method' and
+        'select_quantity' of the schema for that ``field_name`` and return a
+         dict keyed by field_name with value of
+        a list of selected dict items from ``self.config["data"]``.
+
+        :param field_name: 'field_name' is the key of the
+        ``self.config["schema"]`` dictionary like this: ``self.config["schema"][field_name]``
+
+        :returns: dict keyed by ``field_name`` with value set as a list of
+        dicts of generated new items of shape:
+
+        ..code-block:: python
+
+            {
+                'field_name': [
+                    {field_name: new_value},
+                    ...
+                ]
+            }
+
+        """
+
+        field_settings = self.config["schema"][field_name]
+
+        output_values = []
+
+        if field_settings["select_method"] == "rand_choice":
+
+            # the config file options for rand_choice can be either an int or a 'many' string
+
+            existing_data_list = deepcopy(self.config["data"][field_name])
+            # in the case of an int
+            if isinstance(field_settings["select_quantity"], int):
+                # loop through the data that number of times
+                # for that field_name
+                for _ in range(field_settings["select_quantity"]):
+
+                    # this is the main guts of the selection of existing
+                    # this assumes that the value of each ``field_name`` in
+                    # existing data is a list. This assumption may not always hold?
+                    output_values.append(random.choice(existing_data_list))
+
+            # in the case of the 'many' string:
+            if field_settings["select_quantity"] == "many":
+                # we need to know the length of the data, then can use that
+                # as the max for a randint to use as the range:
+                range_max = len(self.config["data"][field_name])
+
+                for _ in range(random.randint(1, range_max)):
+                    output_values.append(random.choice(existing_data_list))
+
+        return_shape = {field_name: output_values}
+
+        return return_shape
+
+    def _create_new(self, field_name: str) -> dict:
+        """Create a new value for a supplied field_name (ie the top_level key of
+        ``self.config["schema"]``) and return a dict of a list of dicts keyed by ``field_name``:
+
+        The quantity of items generated and appended to  the list is
+        controlled by the ``create_volume`` setting.
+
+        :param field_name: the ``field_name`` is the key of the
+        ``self.config["schema"]`` dictionary ``self.config["schema"][field_name]``
+
+        :returns: dict keyed by ``field_name`` with value set as a
+        list of dicts of generated new items of shape:
+
+        ..code-block:: python
+
+            {
+                'field_name': [
+                    {field_name: new_value},
+                ]
+            }
+
+        """
+        settings = self.config["schema"][field_name]
+        output_values = []
+
+        try:
+            create_volume = settings["create_volume"]
+        except KeyError:
+            # use KeyError like Flask does to guard against missing keys
+            create_volume = 1
+
+        for _ in range(create_volume):
+
+            if settings["create_type"] == "int":
+                # check for creation settings else just plug some defaults
+
+                # defaults:
+                int_min = -100
+                int_max = 100
+
+                # overwrite defaults if present
+                if "int_min" in settings.keys():
+                    int_min = settings["int_min"]
+                if "int_max" in settings.keys():
+                    int_max = settings["int_max"]
+
+                # check value of int_min and max
+                if int_max <= int_min:
+                    raise ValueError(
+                        f"supplied int_max of {int_max} must be greater than int_min of {int_min}"
+                    )
+
+                new_value = random.randint(int_min, int_max)
+
+            elif settings["create_type"] == "float":
+                pass
+            elif settings["create_type"] == "str":
+                pass
+            elif settings["create_type"] == "bool":
                 pass
 
+            # more and more types here, up to faker integraiton
+            elif settings["create_type"] == "address":
+                pass
+            else:
+                pass
+
+            new_value_dict = {field_name: new_value}
+            output_values.append(new_value_dict)
+
+        return_shape = {field_name: output_values}
+
+        return return_shape
+
+    def _filter_keys(self, field_name: str) -> dict:
+        """Filter the data selected from existing data
+        returns a dict of a list of dicts keyed by ``field_name``:
+
+        :param field_name: the ``field_name`` is the key of the
+        ``self.config["schema"]`` dictionary ``self.config["schema"][field_name]``
+
+        :returns: dict keyed by ``field_name`` with value set as a list of dicts
+        of generated new items of shape:
+
+        ..code-block:: python
+
+            {
+                'field_name': [
+                    {field_name: new_value},
+                ]
+            }
+        """
+
+        settings = self.config["schema"][field_name]
+
+        # again, assuming the data shape is a list as expected.
+        field_values = self.new_event_data[field_name]
+
+        output_value = []
+
+        try:
+            chosen_keys = settings["choose_keys"]
+        except KeyError:
+            chosen_keys = None
+
+        for line in field_values:
+
+            if chosen_keys:
+                output_value.append({k: v for k, v in line.items() if k in chosen_keys})
+            else:
+                output_value.append(line)
+
+        return_shape = {field_name: output_value}
+        return return_shape
+
+    def _insert_into(self, field_name) -> None:
+        """Insert newly created data into another top-level key in ``self.new_event_data``
+        Operates directly upon the ``self.new_event_data`` attribute object and so does not
+        return.
+
+        :param field_name: the field_name of both ``self.config["schema"]`` and ``self.new_event_data``
+
+        """
+
+        # lets grab the list of insert destinations from the schema
+        try:
+            insert_destinations = self.config["schema"][field_name]["insert_into"]
+        except KeyError:
+            insert_destinations = False
+
+        if insert_destinations:
+            # if there are destinations, looping through them will give us the key
+            # to use to reach into self.new_event_data and add the field
+            for insert_destination in insert_destinations:
+
+                # need to check that the value of the self.new_event_data[insert_destination]
+                # ie where the new data is going, is a list so it can have a len
+                # where self.new_event_data[insert_destination] is a top level key, the value
+                # is just an int, float, bool, str etc
+                # which has no len
+                if isinstance(
+                    self.new_event_data[insert_destination], list
+                ) and isinstance(self.new_event_data[field_name], list):
+                    # if the len of the insert dest is > 1
+                    # then _create_new needs to be recalled for num times == len(insert dest)
+                    if len(self.new_event_data[insert_destination]) > 1:
+                        for item in self.new_event_data[insert_destination]:
+                            item.update(self._create_new(field_name))
+
+                    # if the len of the insert dest is == 1
+                    # insert the created field as is
+                    else:
+                        for item in self.new_event_data[insert_destination]:
+                            # get the data we want to insert which is somewhere else in the new_event_data
+                            data_to_insert = self.new_event_data[field_name]
+
+                            # then update the item with the new data to insert
+                            item.update({field_name: data_to_insert})
+                            # this will be flattened during the call to _flatten_duplicate_sub_keys call
+            self.new_event_data.pop(field_name)
+
+    def _flatten_duplicate_sub_keys(self, parent: dict) -> dict:
+        """De-duplicate keys in newly created data by recursively
+        traversing the passed dict object ``parent``, identifying any
+        duplicate keys in sub dictionaries if they exist, and then
+        flattening the duplicated key to the ``parent`` level.
+
+        Return the newly de-duplicated dict.
+
+        An assumption for now is that any dict that itself holds one or more dicts
+        as values holds them in a list and that the shape
+            ``{"key": {"key": value}}``
+        will not exist, instead the shape
+            ``{"key": [{"key": value}]}``
+        is expected to exist.
+
+        :param parent: dictionary to traverse
+
+        :returns: dictionary that is deduplicated.
+        """
+
+        if isinstance(parent, dict):
+            for key in parent.keys():
+                if isinstance(parent[key], list):
+                    if len(parent[key]) == 1:
+                        item_list = []
+                        for item in parent[key]:
+                            item_list.append(item)
+
+                        item_keys = []
+                        for d in item_list:
+                            for k, v in d.items():
+                                item_keys.append(k)
+
+                        if key in item_keys:
+                            new_val = parent[key][0]
+                            parent.update(new_val)
+
+                    self._flatten_duplicate_sub_keys(parent[key])
+
+        elif isinstance(parent, list):
+            for item in parent:
+                self._flatten_duplicate_sub_keys(item)
+
+        else:
+            pass
+
+        return parent
+
+    def _flatten(self, field_name: str) -> None:
+        """Flatten values of provided ``field_name`` key to the top level
+        of the ``self.new_event_data`` dictionary.
+
+        Does not return
+
+        :param field_name: field_name of object to flatten to top level
+
+        """
+        # This method operates directly on ``self.new_event_data``, unlike some other methods
+        # this is because i cannot think how to effectively update keys upward to the parent
+        # and delete the old child key from the parent without operating within a loop of items
+
+        # the other option would be to have a static class method, and pass and return new_event,
+        # but that seems kind of like disconnecting then reconnecing the logic of this
+        # method from the state of the class.
+
+        # see pseudocode workings for a standalone function, not a class method, so the change
+        # is thet use of ``self.new_event_data`` in place of ``parent``
+
+        # Unsure if this the right decision, but will roll with for now.
+
+        # ..code-block:: python:
+
+        #     def flatten(parent, child_key):
+        #         if len(parent[child_key]) > 1:
+        #             return parent
+        #         else:
+        #             outlist = []
+        #             for item in parent[child_key]:
+        #                 parent.update(item)
+        #             parent.pop(child_key)
+
+        #             return parent
+
+        #     result = flatten(new_event, "customers")
+
+        # assess if the flatten settings bool is true
+        try:
+            flatten = self.config["schema"][field_name]["flatten"]
+        except KeyError:
+            flatten = False
+
+        if flatten:
+            if isinstance(self.new_event_data[field_name], list):
+                if len(self.new_event_data[field_name]) > 1:
+                    # just do nothing
+                    pass
+                else:
+                    # operate on self.new_event_data directly
+                    for item in self.new_event_data[field_name]:
+                        # egress the item key to reference to stop duplicated keys popping
+                        item_key = list(item.keys())[0]
+                        self.new_event_data.update(item)
+
+                    # this little jiggery pokery below is to guard against when a
+                    # created field duplicates it's key and is of form:
+                    #     {
+                    #         'volume_sold': [
+                    #             {'volume_sold': 12}
+                    #         ]
+                    #     }
+                    # it will be flattened to:
+                    #     {
+                    #         'volume_sold': 12
+                    #     }
+                    # but then dict.pop('volume_sold') is called becuase the existing data approach has different
+                    # key in the list of dicts form the field_name itself, so the approach is to pop 'field_name'
+                    # so i don't want to pop field_name if it matches the key of the item being flattened
+                    # If you don't protect like this, the key pops itself after the update call...
+                    # It's probably bad form in the way created events are being created, but the
+                    # form currently works for other method calls and reasons, so I'm keeping like it
+                    # is until it causes further issues
+                    if item_key != field_name:
+                        self.new_event_data.pop(field_name)
+
+    def _create_value_errors(self, field_name: str) -> dict:
+        """Create errors in the ''values'' of ``self.new_event_data['field_name']``
+        according to the value error settings
+        in ``self.config["schema"][field_name]['value_errors'] if value_error_mode
+        is activated globally.
+
+        Uses random float generation to implement simplistic probability of event errors.
 
 
-        # add a cheeky wee uuid for fun
-        new_event.update({"event_id": str(uuid.uuid4())})
 
-        # print("new_event = ", json.dumps(new_event, indent=4))
+        :param field_name: field_name to query both ``self.new_event_data`` and ``self.config["schema"]``
 
-        return new_event
-            # random_float, rnad_address, rand_name, rand_age, rand_bool, incr_from_prev, decr_from_prev
-            # etc from faker or generated
+        :returns: dict
+
+        """
+
+        # ``self.config["errors"]`` specifies the active error mode as includign value_errors
+
+        try:
+            value_errors_list = self.config["schema"][field_name]["value_errors"]
+        except KeyError:
+            value_errors_list = False
+
+        if value_errors_list:
+            for value_error in value_errors_list:
+                if value_error == "type":
+
+                    # at this stage in the new event process we know
+                    # that each field_name in the new event data has a list of more dicts.
+                    # this assumption of calling order and initial shape is either something
+                    # of great horror or isn't an issue. Time will tell. Feels sketchy.
+                    r = random.random()
+                    s = self.config["errors"]["value_error_prob"]
+
+                    original_field_name_item_list = self.new_event_data[field_name]
+
+                    if r < s:
+
+                        random_item = random.choice(original_field_name_item_list)
+
+                        # going to remove random_item from oirignal list, fuck with it, then add it back and update new event again
+
+                        original_field_name_item_list.remove(random_item)
+
+                        # choosing a random key to mess up the value of feels a good first
+                        # methodology. I'd imagine a lot of time and refactoring is going to
+                        # happen here. That's right!
+
+                        random_key = random.choice(list(random_item.keys()))
+
+                        # get the current value of that random key and infer it's type
+                        curr_value = random_item[random_key]
+                        curr_value_type = type(curr_value)
+
+                        rand_string = str(uuid.uuid4())[:8]
+
+                        type_dict = {
+                            str: rand_string,
+                            int: random.randint(
+                                -99999999, -777777
+                            ),  # replace with random call, or faker
+                            float: random.random(),  # replace with random call, or faker
+                            bool: True,  # randomise
+                        }
+
+                        # edit the type dict to remove the current value's type
+                        type_dict.pop(curr_value_type)
+
+                        # randomly choose a value from the type_dict to replace the
+                        # current value of the item
+                        new_error_value = type_dict[
+                            random.choice(list(type_dict.keys()))
+                        ]
+
+                        new_error_filled_item = {random_key: new_error_value}
+                        random_item.update(new_error_filled_item)
+                        original_field_name_item_list.append(random_item)
+
+                    return {field_name: original_field_name_item_list}
+
+        else:
+            return {field_name: self.new_event_data[field_name]}
+
+    def _create_key_errors(self):
+        """Create errors in the ''keys'' of ``self.new_event_data['field_name']``
+        according to the key error settings
+        in ``self.config["schema"][field_name]['key_errors'] if key_error_mode
+        is activated globally.
+
+        Uses random float generation to implement simplistic probability of event errors.
+
+        Operates directly on the ``self.new_event_data`` attribute so does not return.
+
+        :param field_name: field_name to query both ``self.new_event_data`` and ``self.config["schema"]``
+
+        """
+
+        # check key error mode is active
+        if self.config["errors"]["key_errors"]:
+            if random.random() < self.config["errors"]["key_error_prob"]:
+                key_list = list(self.new_event_data.keys())
+
+                chosen_key = random.choice(key_list)
+                # embracing randomness to either drop or mangle key
+
+                if random.random() >= 0.5:
+                    self.new_event_data.pop(chosen_key)
+                else:
+                    messed_up_key = chosen_key[: len(chosen_key) - 2]
+                    self.new_event_data[messed_up_key] = self.new_event_data[chosen_key]
+                    self.new_event_data.pop(chosen_key)
+        else:
+            pass
+
+    def set_source_element(
+        self, config_area=None, setting=None, new_setting_val=None, field_name=None
+    ):
+        """setter to change source config during server runtime"""
+        if config_area == "schema":
+            print("sehcme")
+            self.config[config_area][field_name].update({setting: new_setting_val})
+        elif config_area in ["errors", "frequency"]:
+            print("error patch")
+            self.config[config_area].update({setting: new_setting_val})
+
+    @property
+    def get_source_state(self):
+
+        source_state = self.config
+
+        return source_state

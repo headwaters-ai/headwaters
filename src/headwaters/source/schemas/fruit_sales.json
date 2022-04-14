@@ -29,19 +29,19 @@
         ],
         "customers": [
             {
-                "customer_id": 98765,
+                "cust_id": 98765,
                 "cust_name": "Ben"
             },
             {
-                "customer_id": 87654,
+                "cust_id": 87654,
                 "cust_name": "Becky"
             },
             {
-                "customer_id": 76543,
+                "cust_id": 76543,
                 "cust_name": "Grace"
             },
             {
-                "customer_id": 65432,
+                "cust_id": 65432,
                 "cust_name": "Harris"
             }
         ],
@@ -63,41 +63,64 @@
             }
         ]
     },
-    "base_freq": 60000,
+    "frequency": {
+        "base_freq": 60000
+    },
+    "errors": {
+        "value_errors": true,
+        "value_error_prob": 0.2,
+        "key_errors": false,
+        "key_error_prob": 0.2
+    },
     "schema": {
-        "_select_from": {
-            "products": {
-                "select_method": "rand_choice",
-                "select_quantity": "many",
-                "choose_keys": [],
-                "flatten": false
-            },
-            "customers": {
-                "select_method": "rand_choice",
-                "select_quantity": 1,
-                "choose_keys": [],
-                "flatten": true
-            },
-            "shops": {
-                "select_method": "rand_choice",
-                "select_quantity": 1,
-                "choose_keys": [],
-                "flatten": false
-            }
+        "products": {
+            "existing": true,
+            "select_method": "rand_choice",
+            "select_quantity": "many",
+            "choose_keys": [],
+            "flatten": false,
+            "value_errors": [
+                "type"
+            ]
+        },
+        "customers": {
+            "existing": true,
+            "select_method": "rand_choice",
+            "select_quantity": 1,
+            "choose_keys": [],
+            "flatten": true,
+            "value_errors": [
+                "type"
+            ]
+        },
+        "shops": {
+            "existing": true,
+            "select_method": "rand_choice",
+            "select_quantity": 1,
+            "choose_keys": [],
+            "flatten": false,
+            "value_errors": []
         },
         "volume_sold": {
-            "create_method": "rand_int",
+            "existing": false,
+            "create_method": "rand",
+            "create_type": "int",
+            "create_volume": 1,
             "insert_into": [
                 "products"
             ],
-            "rand_min": 1,
-            "rand_max": 10
+            "int_min": 1,
+            "value_errors": []
         },
         "timestamp": {
-            "create_method": "rand_int",
+            "existing": false,
+            "create_method": "rand",
+            "create_type": "int",
             "insert_into": [],
-            "rand_min": 10000000,
-            "rand_max": 12345000
+            "create_volume": 1,
+            "int_min": -10000000,
+            "int_max": 12345000,
+            "value_errors": []
         }
     }
 }
