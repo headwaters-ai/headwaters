@@ -1,3 +1,4 @@
+from ast import walk
 import random
 import pkgutil
 import json
@@ -103,10 +104,6 @@ class Source:
             )
 
         self.config = initial_config
-        # self.config["schema"] = initial_config["schema"]
-        # self.config["errors"] = initial_config["errors"]
-        # self.config["data"] = initial_config["data"]
-        # self.config["base_freq"] = initial_config["base_freq"]
 
     def new_event(self) -> dict:
         """Create and return a ``new_event`` dictionary object according to the
@@ -217,25 +214,56 @@ class Source:
             # the config file options for rand_choice can be either an int or a 'many' string
 
             existing_data_list = deepcopy(self.config["data"][field_name])
-            # in the case of an int
-            if isinstance(field_settings["select_quantity"], int):
-                # loop through the data that number of times
-                # for that field_name
-                for _ in range(field_settings["select_quantity"]):
 
-                    # this is the main guts of the selection of existing
-                    # this assumes that the value of each ``field_name`` in
-                    # existing data is a list. This assumption may not always hold?
-                    output_values.append(random.choice(existing_data_list))
+            # get vars for use below
+            len_data = len(self.config["data"][field_name])
+            select_quantity = field_settings["select_quantity"]
+            # in the case of an int
+            if isinstance(select_quantity, int):
+                
+
+                # this is the main guts of the selection of existing
+                # this assumes that the value of each ``field_name`` in
+                # existing data is a list. This assumption may not always hold?
+
+                # check select_quantity <= len of data and not negative:
+                # or can i rely on inbuilt ValueError from random.sample?
+
+                # return type from random.sample is list, so instead of appending, replace
+                # output_values
+                try:
+                    output_values = random.sample(existing_data_list, k=select_quantity)
+                except ValueError as e:
+                    raise ValueError(f"the 'select_quantity' value supplied of {select_quantity} created error {e}")
 
             # in the case of the 'many' string:
-            if field_settings["select_quantity"] == "many":
+            if select_quantity == "many":
                 # we need to know the length of the data, then can use that
                 # as the max for a randint to use as the range:
-                range_max = len(self.config["data"][field_name])
 
-                for _ in range(random.randint(1, range_max)):
-                    output_values.append(random.choice(existing_data_list))
+                select_quantity = random.randint(1,len_data)
+
+                # return type from random.sample is list, so instead of appending, replace
+                # output_values
+                output_values = random.sample(existing_data_list, k=select_quantity)
+
+        if field_settings["select_method"] == "from_last":
+
+            # the config file options for rand_choice can be an int not gt len of
+            # self.data[field_name]
+
+            existing_data_list = deepcopy(self.config["data"][field_name])
+
+            # in the case of an int, which it has to be?
+            if isinstance(field_settings["select_quantity"], int):
+
+                # use slice selectors and supplied int to select n records
+                list_len = len(existing_data_list)
+                slice_amount = field_settings["select_quantity"]
+                selected_list = existing_data_list[list_len - slice_amount :]
+
+                for i in selected_list:
+                    output_values.append(i)
 
         return_shape = {field_name: output_values}
 
@@ -272,44 +300,89 @@ class Source:
             # use KeyError like Flask does to guard against missing keys
             create_volume = 1
 
-        for _ in range(create_volume):
+        try:
+            build_from = settings["build_from"]
+        except KeyError:
+            # use KeyError like Flask does to guard against missing keys
+            build_from = False
 
-            if settings["create_type"] == "int":
-                # check for creation settings else just plug some defaults
+        if build_from:
+            # where building off from an exisitng data element
+            # outwith creat_volume loop as asusming single for dev now
+            # create_methods: incr, decr, walk
+            # create types: int, float
+            # bool would jsut be a pure de novo insertinto like volume sold
+            # string....?
 
-                # defaults:
-                int_min = -100
-                int_max = 100
+            # grab the settings, need to put behind a try KeyError guard
+            create_method = settings["create_method"]
+            create_type = settings["create_type"]
 
-                # overwrite defaults if present
-                if "int_min" in settings.keys():
-                    int_min = settings["int_min"]
-                if "int_max" in settings.keys():
-                    int_max = settings["int_max"]
+            # grab the last record from build from
+            # get the location dot string to list elements
+            build_from_location_list = build_from.split(".")
+            bf_first_key = build_from_location_list[0]
+            bf_second_key = build_from_location_list[1]
 
-                # check value of int_min and max
-                if int_max <= int_min:
-                    raise ValueError(
-                        f"supplied int_max of {int_max} must be greater than int_min of {int_min}"
+            data_from_build_from_location = deepcopy(self.config["data"][bf_first_key])
+            last_build_from_record = data_from_build_from_location[-1]
+
+            value_to_build_from = last_build_from_record[bf_second_key]
+            if create_type == "int":
+                if create_method == "incr":
+                    new_value = value_to_build_from + settings["incr_by"]
+                elif create_method == "decr":
+                    new_value = value_to_build_from - settings["decr_by"]
+                elif create_method == "walk":
+                    walk_val = int(settings["walk_by"])
+                    new_value = value_to_build_from + random.randint(
+                        (walk_val * -1), walk_val
                     )
 
-                new_value = random.randint(int_min, int_max)
-
-            elif settings["create_type"] == "float":
-                pass
-            elif settings["create_type"] == "str":
-                pass
-            elif settings["create_type"] == "bool":
-                pass
-
-            # more and more types here, up to faker integraiton
-            elif settings["create_type"] == "address":
-                pass
-            else:
-                pass
-
-            new_value_dict = {field_name: new_value}
+            new_value_dict = {bf_second_key: new_value}
             output_values.append(new_value_dict)
+
+
+        else:
+            # pure de novo stuff here
+            for _ in range(create_volume):
+                if settings["create_method"] == "rand":
+                    if settings["create_type"] == "int":
+                        # check for creation settings else just plug some defaults
+
+                        # defaults:
+                        int_min = -100
+                        int_max = 100
+
+                        # overwrite defaults if present
+                        if "int_min" in settings.keys():
+                            int_min = settings["int_min"]
+                        if "int_max" in settings.keys():
+                            int_max = settings["int_max"]
+
+                        # check value of int_min and max
+                        if int_max <= int_min:
+                            raise ValueError(
+                                f"supplied int_max of {int_max} must be greater than int_min of {int_min}"
+                            )
+
+                        new_value = random.randint(int_min, int_max)
+
+                    elif settings["create_type"] == "float":
+                        pass
+                    elif settings["create_type"] == "str":
+                        pass
+                    elif settings["create_type"] == "bool":
+                        pass
+
+                    # more and more types here, up to faker integraiton
+                    elif settings["create_type"] == "address":
+                        pass
+                    else:
+                        pass
+
+                    new_value_dict = {field_name: new_value}
+                    output_values.append(new_value_dict)
 
         return_shape = {field_name: output_values}
 

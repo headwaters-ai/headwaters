@@ -4,27 +4,32 @@
             {
                 "item_name": "apples",
                 "item_price": 3.99,
-                "sku": 12345
+                "sku": 12345,
+                "counter": 1
             },
             {
                 "item_name": "bananas",
                 "item_price": 1.99,
-                "sku": 23456
+                "sku": 23456,
+                "counter": 2
             },
             {
                 "item_name": "cherries",
                 "item_price": 3.50,
-                "sku": 34567
+                "sku": 34567,
+                "counter": 3
             },
             {
                 "item_name": "damsons",
                 "item_price": 1.20,
-                "sku": 45678
+                "sku": 45678,
+                "counter": 4
             },
             {
                 "item_name": "elderberries",
                 "item_price": 5.00,
-                "sku": 56789
+                "sku": 56789,
+                "counter": 5
             }
         ],
         "customers": [
@@ -120,6 +125,17 @@
             "create_volume": 1,
             "int_min": -10000000,
             "int_max": 12345000,
+            "value_errors": []
+        },
+        "counter": {
+            "existing": false,
+            "build_from": "products.counter",
+            "create_method": "decr",
+            "create_type": "int",
+            "insert_into": [
+            ],
+            "create_volume": 1,
+            "decr_by": 1,
             "value_errors": []
         }
     }

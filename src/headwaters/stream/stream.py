@@ -12,6 +12,7 @@ class Stream:
 
         if not isinstance(source, int):
             pass
+        
         self.source = source
         self.sio = sio_app
 
@@ -89,7 +90,13 @@ class Stream:
 
             if self.burst_mode:
                 if self.burst_counter <= self.burst_vol:
-                    self.collect_emit()
+                    try:
+                        self.collect_emit()
+                    except ValueError as e:
+                        raise ValueError(f"call to source.new_event() created error {e}")
+                    except Exception as e:
+                        raise Exception(f"as yet unknown error of {e}")
+                   
                     self.burst_counter += 1
                 else:
                     self.burst_mode = False
@@ -106,8 +113,9 @@ class Stream:
 
         the event name is set to the name of the source and stream ie 'fruits'
         """
-
+        
         event = self.source.new_event()
+        
         self.sio.emit(self.name, data=event)
 
     def set_freq(self, new_freq):
