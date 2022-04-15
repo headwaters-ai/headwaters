@@ -8,11 +8,15 @@ headwaters uses [semver](https://semver.org/) for versioning
 
 - **Added**
 
-    - None
+    - API route versioning: [#30](https://github.com/headwaters-ai/headwaters/issues/30) [commit](https://github.com/headwaters-ai/headwaters/commit/e2cc0ad914a06b2ae90c2c9acd5d972b0e63be21). \
+    Versions will match the major version of Headwaters. Currently v0. \
+    Add '/v0' to all api calls.
 
 - **Changed**
 
-    - None
+    - The base url of the local Headwaters server was changed to 'http:127.0.0.1:5555/api' during \
+    work on  [#30](https://github.com/headwaters-ai/headwaters/issues/30) [commit](https://github.com/headwaters-ai/headwaters/commit/e2cc0ad914a06b2ae90c2c9acd5d972b0e63be21). 
+    This matches the url format of the /ui for consistency.
 
 - **Deprecated** 
 
