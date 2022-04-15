@@ -80,8 +80,8 @@
     "schema": {
         "products": {
             "existing": true,
-            "select_method": "from_last",
-            "select_quantity": 2,
+            "select_method": "rand_choice",
+            "select_quantity": "many",
             "choose_keys": [],
             "flatten": false,
             "value_errors": [

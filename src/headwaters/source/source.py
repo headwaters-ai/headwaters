@@ -214,25 +214,38 @@ class Source:
             # the config file options for rand_choice can be either an int or a 'many' string
 
             existing_data_list = deepcopy(self.config["data"][field_name])
-            # in the case of an int
-            if isinstance(field_settings["select_quantity"], int):
-                # loop through the data that number of times
-                # for that field_name
-                for _ in range(field_settings["select_quantity"]):
 
-                    # this is the main guts of the selection of existing
-                    # this assumes that the value of each ``field_name`` in
-                    # existing data is a list. This assumption may not always hold?
-                    output_values.append(random.choice(existing_data_list))
+            # get vars for use below
+            len_data = len(self.config["data"][field_name])
+            select_quantity = field_settings["select_quantity"]
+            # in the case of an int
+            if isinstance(select_quantity, int):
+                
+
+                # this is the main guts of the selection of existing
+                # this assumes that the value of each ``field_name`` in
+                # existing data is a list. This assumption may not always hold?
+
+                # check select_quantity <= len of data and not negative:
+                # or can i rely on inbuilt ValueError from random.sample?
+
+                # return type from random.sample is list, so instead of appending, replace
+                # output_values
+                try:
+                    output_values = random.sample(existing_data_list, k=select_quantity)
+                except ValueError as e:
+                    raise ValueError(f"the 'select_quantity' value supplied of {select_quantity} created error {e}")
 
             # in the case of the 'many' string:
-            if field_settings["select_quantity"] == "many":
+            if select_quantity == "many":
                 # we need to know the length of the data, then can use that
                 # as the max for a randint to use as the range:
-                range_max = len(self.config["data"][field_name])
 
-                for _ in range(random.randint(1, range_max)):
-                    output_values.append(random.choice(existing_data_list))
+                select_quantity = random.randint(1,len_data)
+
+                # return type from random.sample is list, so instead of appending, replace
+                # output_values
+                output_values = random.sample(existing_data_list, k=select_quantity)
 
         if field_settings["select_method"] == "from_last":
 

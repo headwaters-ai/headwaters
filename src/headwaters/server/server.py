@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, Response, abort
+from flask import Flask, jsonify, request, Response, abort, Blueprint
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -31,23 +31,26 @@ from ..stream import Stream
 from ..source import Source
 
 
-app = Flask("hw-server")
+app = Flask(__name__)
 CORS(app)
 sio = SocketIO(app)
 
+api_version = '/v0'
 
-@app.get("/")
+api = Blueprint('api', __name__)
+
+@api.get("/")
 def index():
     return jsonify(msg=f"says hello and {random.random()}")
 
 
-@app.get("/ping")
+@api.get("/ping")
 def ping():
 
     return jsonify(pong=random.randint(1, 100))
 
 
-@app.get("/start")
+@api.get("/start")
 def start():
 
     """route to start the stream provided a stream_name in the url params
@@ -112,7 +115,7 @@ def start():
     )
 
 
-@app.get("/stop")
+@api.get("/stop")
 def stop():
 
     """route to stop the stream provided a stream_name in the url params
@@ -177,7 +180,7 @@ def stop():
     )
 
 
-@app.get("/stream_status")
+@api.get("/stream_status")
 def stream_status():
     """a general purpose route to enable quick acquisition of a stream state
 
@@ -241,7 +244,7 @@ def stream_status():
     )
 
 
-@app.get("/source")
+@api.get("/source")
 def get_source():
     """a GET route to enable acquisition of a source instance state
 
@@ -308,7 +311,7 @@ def get_source():
         )
 
 
-@app.patch("/freq")
+@api.patch("/freq")
 def freq():
     """PATCH that is sent the new required value for the freq of stream new_freq
     and use the stream.set_freq(new_freq) setter
@@ -377,7 +380,7 @@ def freq():
             )
 
 
-@app.patch("/start_burst")
+@api.patch("/start_burst")
 def start_burst():
     """trigger a burst by setting the stream.burst_mode to True via
     calling the stream.start_burst() setter method
@@ -441,7 +444,7 @@ def start_burst():
             )
 
 
-@app.patch("/burst_freq")
+@api.patch("/burst_freq")
 def burst_freq():
     """set the burst frequency by calling stream.set_burst_freq method"""
 
@@ -507,7 +510,7 @@ def burst_freq():
             )
 
 
-@app.patch("/burst_vol")
+@api.patch("/burst_vol")
 def burst_vol():
     """set the burst volume by calling stream.set_burst_vol method"""
 
@@ -573,7 +576,7 @@ def burst_vol():
             )
 
 
-@app.patch("/source")
+@api.patch("/source")
 def patch_source():
 
     # first, check the request has a json data payload
@@ -648,8 +651,7 @@ def patch_source():
                     setting=setting,
                     new_setting_val=new_setting_val,
                 )
-                r = source.get_source_state
-                return jsonify(r)
+
             except ValueError as e:
                 return (
                     jsonify(msg=f"{str(e)}"),
@@ -665,6 +667,9 @@ def patch_source():
                     jsonify(msg=f"unknown error {str(e)}"),
                     400,
                 )
+            else:
+                r = source.get_source_state
+                return jsonify(r)
         else:
             return (
                 jsonify(
@@ -674,8 +679,8 @@ def patch_source():
             )
 
 
-@app.route("/ui", defaults={"path": ""})
-@app.route("/<path:path>")
+@api.route("/ui", defaults={"path": ""})
+@api.route("/<path:path>")
 def catch_all(path):
     if path.endswith(".js"):
         r = pkgutil.get_data("headwaters", f"{path}")
@@ -715,6 +720,7 @@ def connect_hndlr():
 streams = []
 sources = []
 
+app.register_blueprint(api, url_prefix=f"/api/{api_version}")
 
 def run(selected_sources):
     """ """
@@ -745,7 +751,7 @@ def run(selected_sources):
     print(
         Fore.GREEN
         + Style.BRIGHT
-        + f"STREAMS: http://127.0.0.1:{port}"
+        + f"STREAMS: http://127.0.0.1:{port}/api/v0"
         + Style.RESET_ALL
     )
     print(
