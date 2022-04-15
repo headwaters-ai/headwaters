@@ -6,17 +6,17 @@ Simple stream sources for event-driven application development.
 
 From [Pypi](https://pypi.org/project/headwaters/):
 
-After creating a virtual environment:
+After creating a virtual environment, on the cli:
 
-```pip install -U headwaters```
+```>>> pip install -U headwaters```
 
-then start the default streaming server:
+then start the default streaming server from the cli:
 
-```hw```
+```>>> hw```
 
 The CLI output shows the location of the server and ui.
 
-Streams can be connected to at the server: http://127.0.0.1:5555
+Streams can be connected to at the server: http://127.0.0.1:5555/api/v0
 
 To control the streams, use the ui running at http://127.0.0.1:5555/ui
 

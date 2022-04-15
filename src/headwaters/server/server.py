@@ -644,7 +644,7 @@ def patch_source():
     for source in sources:
         if source.name == source_name:
             try:
-                print("made it to set source call in server")
+                # print("made it to set source call in server")
                 source.set_source_element(
                     config_area=config_area,
                     field_name=field_name,
@@ -679,8 +679,8 @@ def patch_source():
             )
 
 
-@api.route("/ui", defaults={"path": ""})
-@api.route("/<path:path>")
+@app.route("/ui", defaults={"path": ""})
+@app.route("/<path:path>")
 def catch_all(path):
     if path.endswith(".js"):
         r = pkgutil.get_data("headwaters", f"{path}")

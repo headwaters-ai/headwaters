@@ -7,9 +7,6 @@ import uuid
 from datetime import datetime
 from copy import deepcopy
 
-from numpy import source
-from pyparsing import original_text_for
-
 
 class Source:
 
@@ -718,10 +715,10 @@ class Source:
     ):
         """setter to change source config during server runtime"""
         if config_area == "schema":
-            print("sehcme")
+            # print("sehcme")
             self.config[config_area][field_name].update({setting: new_setting_val})
         elif config_area in ["errors", "frequency"]:
-            print("error patch")
+            # print("error patch")
             self.config[config_area].update({setting: new_setting_val})
 
     @property
