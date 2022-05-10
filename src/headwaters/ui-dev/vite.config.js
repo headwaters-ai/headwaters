@@ -15,5 +15,9 @@ export default defineConfig({
   build: {
     outDir: '../ui',
     emptyOutDir: true
+  },
+  server: {
+    port: 5555,
+    strictPort: true
   }
 })
