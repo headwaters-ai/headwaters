@@ -2,7 +2,7 @@
     "data": {
         "products": [
             {
-                "item_name": "apples",
+                "item_name": "avocado",
                 "item_price": 3.99,
                 "sku": 12345,
                 "counter": 1

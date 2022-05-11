@@ -617,7 +617,7 @@ def patch_source():
 
     except Exception as e:
         return (
-            jsonify(msg=f"unkown error: {str(e)}"),
+            jsonify(msg=f"unknown error: {str(e)}"),
             400,
         )
     # OPTIONAL KEYS
@@ -713,7 +713,7 @@ def catch_all(path):
 
 
 @sio.event("connect")
-def connect_hndlr():
+def connect_handler():
     logging.info(f"sio connection rcvd {sio.sid}")
 
 

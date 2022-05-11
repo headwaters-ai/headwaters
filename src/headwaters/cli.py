@@ -25,6 +25,7 @@ def main(sources: str) -> None:
     print()
     print(Style.BRIGHT  + "Headwaters:" + Style.NORMAL+ " Simple Stream Sources" + Style.RESET_ALL)
     print()
+    
     server.run(sources)
 
 if __name__ == "__main__":
