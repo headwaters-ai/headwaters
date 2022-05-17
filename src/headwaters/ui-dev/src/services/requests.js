@@ -44,5 +44,16 @@ export default {
     return apiClient.patch("/start_burst", {
       'stream_name': streamName,
     });
+  },
+  getSingleSourceStatus(streamName) {
+    return apiClient.get("/source", { params: { 'stream_name': streamName } });
+  },
+  setValueErrorsToggle(streamName, ValueErrorBool) {
+    return apiClient.patch("/source", {
+      "stream_name": streamName,
+      "config_area": "error_mode",
+      "setting": "value_errors",
+      "new_setting_val": ValueErrorBool
+    })
   }
-};
+};  

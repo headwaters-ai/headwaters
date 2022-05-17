@@ -71,7 +71,7 @@
     "frequency": {
         "base_freq": 60000
     },
-    "errors": {
+    "error_mode": {
         "value_errors": true,
         "value_error_prob": 0.2,
         "key_errors": false,

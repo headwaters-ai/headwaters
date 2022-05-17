@@ -1,12 +1,14 @@
 <script>
 import { mapStores } from "pinia";
 import { useStreamStore } from "../stores/streamStore.js";
+import { useSourceStore } from "../stores/sourceStore.js";
 import StreamFreq from "../components/StreamFreq.vue";
 import BurstFreq from "../components/BurstFreq.vue";
 import BurstVol from "../components/BurstVol.vue";
 import StartBurstButton from "../components/StartBurstButton.vue";
 import FlashMsgBar from "../components/FlashMsgBar.vue";
 import StreamStartStop from "../components/StreamStartStop.vue";
+import ValueErrors from "../components/ValueErrors.vue"
 
 export default {
   data() {
@@ -16,9 +18,11 @@ export default {
   },
   computed: {
     ...mapStores(useStreamStore),
+    ...mapStores(useSourceStore),
   },
   created() {
     this.streamStore.getStreamStatus(this.streamName);
+    this.sourceStore.getSingleSourceStatus(this.streamName);
   },
   components: {
     StreamFreq,
@@ -27,6 +31,7 @@ export default {
     BurstVol,
     StartBurstButton,
     FlashMsgBar,
+    ValueErrors
   },
 };
 </script>
@@ -62,14 +67,19 @@ export default {
       <StreamStartStop v-bind:streamName="this.streamName" />
     </div>
     <div class="flex flex-row m-1 items-center">
-      <span class="font-bold w-11">Freq:</span>
+      <span class="font-bold w-16">Freq:</span>
       <StreamFreq v-bind:streamName="this.streamName" />
     </div>
     <div class="flex flex-row m-1 items-center">
-      <span class="font-bold w-11">Burst:</span>
+      <span class="font-bold w-16">Burst:</span>
       <BurstFreq v-bind:streamName="this.streamName" />
       <BurstVol v-bind:streamName="this.streamName" />
       <StartBurstButton :streamName="this.streamName" />
+    </div>
+    <div class="flex flex-row m-1 items-center">
+      <span class="font-bold w-16">Value errors:</span>
+      <ValueErrors v-bind:streamName="this.streamName" />
+      <span>{{this.sourceStore.source.error_mode}}</span>
     </div>
 
     <div class="absolute top-0 left-0 w-full">

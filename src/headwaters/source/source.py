@@ -136,7 +136,7 @@ class Source:
             self.new_event_data.update(self._filter_keys(c))
 
         # 1.3 value errors call
-        if self.config["errors"]["value_errors"]:
+        if self.config["error_mode"]["value_errors"]:
             for d in self.new_event_data.keys():
 
                 self.new_event_data.update(self._create_value_errors(d))
@@ -627,7 +627,7 @@ class Source:
                     # this assumption of calling order and initial shape is either something
                     # of great horror or isn't an issue. Time will tell. Feels sketchy.
                     r = random.random()
-                    s = self.config["errors"]["value_error_prob"]
+                    s = self.config["error_mode"]["value_error_prob"]
 
                     original_field_name_item_list = self.new_event_data[field_name]
 
@@ -693,8 +693,8 @@ class Source:
         """
 
         # check key error mode is active
-        if self.config["errors"]["key_errors"]:
-            if random.random() < self.config["errors"]["key_error_prob"]:
+        if self.config["error_mode"]["key_errors"]:
+            if random.random() < self.config["error_mode"]["key_error_prob"]:
                 key_list = list(self.new_event_data.keys())
 
                 chosen_key = random.choice(key_list)
@@ -716,7 +716,7 @@ class Source:
         if config_area == "schema":
             # print("sehcme")
             self.config[config_area][field_name].update({setting: new_setting_val})
-        elif config_area in ["errors", "frequency"]:
+        elif config_area in ["error_mode", "frequency"]:
             # print("error patch")
             self.config[config_area].update({setting: new_setting_val})
 
