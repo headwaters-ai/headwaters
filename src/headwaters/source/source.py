@@ -1,4 +1,3 @@
-from ast import walk
 import random
 import pkgutil
 import json

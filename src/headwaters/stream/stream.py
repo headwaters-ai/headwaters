@@ -1,5 +1,3 @@
-import logging
-from multiprocessing.sharedctypes import Value
 import time
 from datetime import datetime
 
